@@ -1,0 +1,78 @@
+plugins {
+    id("java")
+    id("application")
+    id("com.gradleup.shadow") version "9.2.2"
+    id("io.ebean") version "14.6.0"
+}
+
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import org.gradle.api.tasks.testing.logging.TestLogEvent.*
+
+ebean {
+    debugLevel = 1
+}
+
+group = "com.internship.rblp"
+version = "1.0.0-SNAPSHOT"
+
+repositories {
+    mavenCentral()
+}
+
+application {
+    mainClass.set("io.vertx.launcher.application.VertxApplication")
+}
+
+dependencies {
+    implementation(platform("io.vertx:vertx-stack-depchain:5.0.6"))
+    implementation("io.vertx:vertx-launcher-application")
+
+    //rx java
+    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
+
+    implementation("io.vertx:vertx-web")
+    implementation("io.vertx:vertx-json-schema")
+
+    implementation("io.ebean:ebean:14.6.0")
+    implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
+    implementation("com.mysql:mysql-connector-j:9.1.0") // standard JDBC driver
+
+    // JWT
+    implementation("io.jsonwebtoken:jjwt-api:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
+
+    // JSON handling - ebean using Jackson
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+
+    testImplementation("io.ebean:ebean-test:14.6.0")
+    testImplementation("io.vertx:vertx-junit5")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("io.ebean:ebean-agent:14.6.0")
+    testRuntimeOnly("com.h2database:h2:2.2.224")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(ShadowJar) {
+    archiveClassifier = "fat"
+    manifest {
+        attributes("Main-Verticle": "com.internship.rblp.MainVerticle")
+    }
+    mergeServiceFiles()
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform()
+    testLogging {
+        events = ['passed', 'skipped', 'failed']
+    }
+}
+
+tasks.withType(JavaExec) {
+    args = ["run", "com.internship.rblp.MainVerticle"]
+}
