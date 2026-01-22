@@ -1,10 +1,17 @@
 package com.internship.rblp;
 
 import com.internship.rblp.config.AppDatabaseConfig;
+import com.internship.rblp.routers.AuthRouter;
+import com.internship.rblp.routers.UserRouter;
+import com.internship.rblp.handlers.auth.AuthHandler;
+import com.internship.rblp.routers.AuthRouter;
+import com.internship.rblp.routers.UserRouter;
+import com.internship.rblp.service.AuthService;
 import io.reactivex.rxjava3.core.Completable;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.AuthenticationHandler;
 import io.vertx.rxjava3.config.ConfigRetriever;
 import io.vertx.rxjava3.core.AbstractVerticle;
 import io.vertx.rxjava3.core.http.HttpServer;
@@ -41,15 +48,32 @@ public class MainVerticle extends AbstractVerticle {
             return Completable.error(e);
         }
 
-        // B. Initialize Router
+        AuthService authService = new AuthService();
+        AuthHandler.init(authService);
+
         Router router = Router.router(vertx);
 
         // Simple health check route to verify server is up
         router.get("/health").handler(ctx -> ctx.json(new JsonObject().put("status", "UP")));
 
-        // TODO: Mount Sub-Routers (Auth, Admin, etc.)
-        // router.mountSubRouter("/api/auth", authRouter);
+        // Mount Sub-Routers
+        //PUBLIC
+        router.route("/api/auth/*").subRouter(AuthRouter.INSTANCE.create(vertx));
 
+        //PROTECTED
+        router.route("/api/user/*").subRouter(UserRouter.INSTANCE.create(vertx));
+
+
+//        try {
+//            System.out.println("DEBUG: Attempting to mount AuthRouter...");
+////            router.mountSubRouter("/api/auth", AuthRouter.create(vertx));
+//            router.route("/api/auth/*").subRouter(AuthRouter.create(vertx));
+//            System.out.println("DEBUG: AuthRouter mounted successfully!");
+//        } catch (Throwable t) {
+//            System.err.println("CRITICAL ERROR: Failed to initialize Auth Module!");
+//            t.printStackTrace(); // <--- This will print the REAL error to your console
+//            return Completable.error(t);
+//        }
         // C. Start HTTP Server
         int port = Integer.parseInt(config.getString("server.port", "8080"));
 
