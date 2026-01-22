@@ -30,12 +30,24 @@ dependencies {
     //rx java
     implementation("io.reactivex.rxjava3:rxjava:3.1.12")
 
+    implementation("io.vertx:vertx-rx-java3") // Connects Vert.x to RxJava
+    implementation("io.vertx:vertx-config")   // Reads application.properties
+
     implementation("io.vertx:vertx-web")
     implementation("io.vertx:vertx-json-schema")
+
+    implementation("io.ebean:ebean-ddl-generator:14.6.0")
+
+    implementation("org.mindrot:jbcrypt:0.4")
+
+    implementation("ch.qos.logback:logback-classic:1.4.14")
 
     implementation("io.ebean:ebean:14.6.0")
     implementation("jakarta.persistence:jakarta.persistence-api:3.1.0")
     implementation("com.mysql:mysql-connector-j:9.1.0") // standard JDBC driver
+
+    //for getters and setters
+    implementation("org.projectlombok:lombok:1.18.38")
 
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
@@ -44,6 +56,9 @@ dependencies {
 
     // JSON handling - ebean using Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
+
+    // Add this to dependencies
+    annotationProcessor("org.projectlombok:lombok:1.18.38")
 
     testImplementation("io.ebean:ebean-test:14.6.0")
     testImplementation("io.vertx:vertx-junit5")
@@ -74,5 +89,5 @@ tasks.withType(Test) {
 }
 
 tasks.withType(JavaExec) {
-    args = ["run", "com.internship.rblp.MainVerticle"]
+    args = ["com.internship.rblp.MainVerticle"]
 }
