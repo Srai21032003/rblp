@@ -4,7 +4,7 @@ import com.internship.rblp.models.entities.StudentProfile;
 import com.internship.rblp.models.entities.TeacherProfile;
 import com.internship.rblp.models.entities.User;
 import com.internship.rblp.models.enums.Role;
-import com.internship.rblp.routers.UserRouter;
+import com.internship.rblp.repository.UserRepository;
 import io.ebean.DB;
 import io.ebean.Transaction;
 import io.reactivex.rxjava3.core.Single;
@@ -16,58 +16,67 @@ import java.util.UUID;
 
 public class AdminService {
 
-    public Single<JsonObject> onboardUser(JsonObject data){
+    private final UserRepository userRepository;
+
+    public AdminService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    // Onboard a User manually
+    public Single<JsonObject> onboardUser(JsonObject data) {
         return Single.fromCallable(() -> {
-           String email = data.getString("email");
+            String email = data.getString("email");
+            if (userRepository.existsByEmail(email)) {
+                throw new RuntimeException("User already exists");
+            }
 
-           if(DB.find(User.class).where().eq("email",email).exists()){
-               throw new RuntimeException("User already exists");
-           }
+            // Transaction stays in Service layer as it coordinates business logic
+            try (Transaction txn = DB.beginTransaction()) {
+                User user = new User();
+                user.setFullName(data.getString("fullName"));
+                user.setEmail(email);
 
-           try(Transaction txn = DB.beginTransaction()){
-               User user = new User();
-               user.setFullName(data.getString("fullName"));
-               user.setEmail(email);
+                String rawPass = data.getString("password", "Welcome123");
+                user.setPassword(BCrypt.hashpw(rawPass, BCrypt.gensalt()));
+                user.setRole(Role.valueOf(data.getString("role").toUpperCase()));
+                user.setIsActive(true);
 
-               String rawPass = data.getString("password","Welcome123@");
-               user.setPassword(BCrypt.hashpw(rawPass,BCrypt.gensalt()));
-               user.setRole(Role.valueOf(data.getString("role").toUpperCase()));
-               user.setIsActive(true);
+                if (user.getRole() == Role.STUDENT) {
+                    StudentProfile sp = new StudentProfile();
+                    sp.setUser(user);
+                    user.setStudentProfile(sp);
+                } else if (user.getRole() == Role.TEACHER) {
+                    TeacherProfile tp = new TeacherProfile();
+                    tp.setUser(user);
+                    user.setTeacherProfile(tp);
+                }
 
-               if (user.getRole() == Role.STUDENT) {
-                   StudentProfile sp = new StudentProfile();
-                   sp.setUser(user);
-                   user.setStudentProfile(sp);
-               } else if (user.getRole() == Role.TEACHER) {
-                   TeacherProfile tp = new TeacherProfile();
-                   tp.setUser(user);
-                   user.setTeacherProfile(tp);
-               }
-               user.save();
-               txn.commit();
-               return new JsonObject().put("userId", user.getUserId().toString()).put("email",user.getEmail());
-           }
+                userRepository.save(user); // Repo handles the save
+                txn.commit();
+
+                return new JsonObject().put("userId", user.getUserId().toString()).put("email", user.getEmail());
+            }
         });
     }
 
-    public Single<List<User>> getAllUsers(){
-        return Single.fromCallable(() -> DB.find(User.class).findList());
+    public Single<List<User>> getAllUsers() {
+        return Single.fromCallable(userRepository::findAll);
     }
 
-    public Single<JsonObject> toggleUserStatus(String userIdStr){
+    public Single<JsonObject> toggleUserStatus(String userIdStr) {
         return Single.fromCallable(() -> {
             UUID userId = UUID.fromString(userIdStr);
-            User user = DB.find(User.class, userId);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if(user == null) throw new RuntimeException("User not found");
-
+            // Flip status
             user.setIsActive(!user.getIsActive());
-            user.save();
+            userRepository.save(user);
 
             return new JsonObject()
                     .put("userId", userIdStr)
                     .put("isActive", user.getIsActive())
-                    .put("message", "User Status updated");
+                    .put("message", "User status updated");
         });
     }
 }

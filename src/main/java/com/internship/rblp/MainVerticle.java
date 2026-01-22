@@ -1,12 +1,14 @@
 package com.internship.rblp;
 
 import com.internship.rblp.config.AppDatabaseConfig;
+import com.internship.rblp.repository.KycRepository;
+import com.internship.rblp.repository.UserRepository;
 import com.internship.rblp.routers.AuthRouter;
 import com.internship.rblp.routers.UserRouter;
 import com.internship.rblp.handlers.auth.AuthHandler;
 import com.internship.rblp.routers.AuthRouter;
 import com.internship.rblp.routers.UserRouter;
-import com.internship.rblp.service.AuthService;
+import com.internship.rblp.service.*;
 import io.reactivex.rxjava3.core.Completable;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
@@ -48,8 +50,17 @@ public class MainVerticle extends AbstractVerticle {
             return Completable.error(e);
         }
 
-        AuthService authService = new AuthService();
+        UserRepository userRepository = new UserRepository();
+        KycRepository kycRepository = new KycRepository();
+
+        AuthService authService = new AuthService(userRepository);
         AuthHandler.init(authService);
+
+        AdminService adminService = new AdminService(userRepository); // Update AdminService too
+//        StudentService studentService = new StudentService(userRepository); // Update StudentService
+//        TeacherService teacherService = new TeacherService(userRepository); // Update TeacherService
+        KycService kycService = new KycService(kycRepository, userRepository);
+//        BulkUploadService bulkUploadService = new BulkUploadService(adminService);
 
         Router router = Router.router(vertx);
 

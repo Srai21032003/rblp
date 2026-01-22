@@ -2,7 +2,7 @@ package com.internship.rblp.service;
 
 import com.internship.rblp.models.entities.TeacherProfile;
 import com.internship.rblp.models.entities.User;
-import io.ebean.DB;
+import com.internship.rblp.repository.UserRepository;
 import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.json.JsonObject;
 
@@ -10,16 +10,19 @@ import java.util.UUID;
 
 public class TeacherService {
 
+    private final UserRepository userRepository;
+
+    public TeacherService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
     public Single<JsonObject> updateProfile(String userIdStr, JsonObject data) {
         return Single.fromCallable(() -> {
             UUID userId = UUID.fromString(userIdStr);
 
-            User user = DB.find(User.class)
-                    .fetch("teacherProfile")
-                    .setId(userId)
-                    .findOne();
+            User user = userRepository.findByIdWithProfile(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            if (user == null) throw new RuntimeException("User not found");
             TeacherProfile profile = user.getTeacherProfile();
 
             if (profile == null) {
@@ -28,12 +31,11 @@ public class TeacherService {
                 user.setTeacherProfile(profile);
             }
 
-            // Update fields
+            // Update allowed fields
             if (data.containsKey("experienceYears")) profile.setExperienceYears(data.getInteger("experienceYears"));
             if (data.containsKey("qualification")) profile.setQualification(data.getString("qualification"));
 
-
-            profile.save();
+            userRepository.save(user);
 
             return new JsonObject()
                     .put("experienceYears", profile.getExperienceYears())

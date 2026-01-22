@@ -67,8 +67,22 @@ public enum AuthHandler implements Handler<RoutingContext> {
 
         authService.register(body)
                 .subscribe(
-                        token -> ctx.response().setStatusCode(201).end(new JsonObject().put("token", token).encode()),
-                        err -> ctx.response().setStatusCode(409).end(new JsonObject().put("error", err.getMessage()).encode())
+                        token -> {
+                            logger.info("Signup success: {}", body.getString("email"));
+                            ctx.response()
+                                    .setStatusCode(201)
+                                    .end(new JsonObject()
+                                            .put("message", "User created")
+                                            .put("token", token).encode());
+                        },
+                        err -> {
+                            logger.error("Error during signup: ", err);
+                            ctx.response()
+                                    .setStatusCode(409)
+                                    .end(new JsonObject()
+                                            .put("error", err.getMessage())
+                                            .encode());
+                        }
                 );
     }
 }
