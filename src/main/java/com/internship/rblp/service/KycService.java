@@ -12,6 +12,7 @@ import io.ebean.DB;
 import io.ebean.Transaction;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -134,14 +135,14 @@ public class KycService {
                 txn.commit();
                 return kycDetails.getId().toString();
             }
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
      * Admin: Validate a specific document (e.g., Mark PAN as VALID).
      */
-    public Single<Void> validateDocument(String docIdStr, String statusStr, String msg) {
-        return Single.fromCallable(() -> {
+    public Completable validateDocument(String docIdStr, String statusStr, String msg) {
+        return Completable.fromAction(() -> {
             UUID docId = UUID.fromString(docIdStr);
             KycDocument doc = kycRepository.findDocumentById(docId)
                     .orElseThrow(() -> new RuntimeException("Document not found"));
@@ -150,8 +151,7 @@ public class KycService {
             doc.setValidationMessage(msg);
 
             kycRepository.saveDocument(doc);
-            return null;
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
@@ -184,7 +184,7 @@ public class KycService {
                     .put("adminRemarks", kyc.getAdminRemarks())
                     .put("submissionDate", kyc.getCreatedAt().toString())
                     .put("documents", docStatuses);
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
@@ -206,7 +206,7 @@ public class KycService {
                 );
             }
             return result;
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
@@ -240,7 +240,7 @@ public class KycService {
                     .put("dob", kyc.getDob() != null ? kyc.getDob().toString() : "")
                     .put("status", kyc.getStatus())
                     .put("documents", docsArray);
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
@@ -255,7 +255,7 @@ public class KycService {
             kyc.setStatus(KycStatus.APPROVED);
             kyc.setUpdatedAt(java.time.Instant.now());
             kycRepository.save(kyc);
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     /**
@@ -271,6 +271,6 @@ public class KycService {
             kyc.setAdminRemarks(reason);
             kyc.setUpdatedAt(java.time.Instant.now());
             kycRepository.save(kyc);
-        });
+        }).subscribeOn(Schedulers.io());
     }
 }

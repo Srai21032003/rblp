@@ -8,6 +8,7 @@ import com.internship.rblp.repository.UserRepository;
 import io.ebean.DB;
 import io.ebean.Transaction;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonObject;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -54,11 +55,11 @@ public class AdminService {
 
                 return new JsonObject().put("userId", user.getUserId().toString()).put("email", user.getEmail());
             }
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     public Single<List<User>> getAllUsers() {
-        return Single.fromCallable(userRepository::findAll);
+        return Single.fromCallable(userRepository::findAll).subscribeOn(Schedulers.io());
     }
 
     public Single<JsonObject> toggleUserStatus(String userIdStr) {
@@ -75,7 +76,7 @@ public class AdminService {
                     .put("userId", userIdStr)
                     .put("isActive", user.getIsActive())
                     .put("message", "User status updated");
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     public Single<JsonObject> updateAdminProfile(String userIdStr, JsonObject data) {
@@ -94,6 +95,6 @@ public class AdminService {
                     .put("userId", user.getUserId().toString())
                     .put("fullName", user.getFullName())
                     .put("email", user.getEmail());
-        });
+        }).subscribeOn(Schedulers.io());
     }
 }

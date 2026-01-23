@@ -4,6 +4,7 @@ import com.internship.rblp.models.entities.TeacherProfile;
 import com.internship.rblp.models.entities.User;
 import com.internship.rblp.repository.UserRepository;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonObject;
 
 import java.util.UUID;
@@ -39,6 +40,6 @@ public class TeacherService {
             return new JsonObject()
                     .put("experienceYears", profile.getExperienceYears())
                     .put("qualification", profile.getQualification());
-        });
+        }).subscribeOn(Schedulers.io());
     }
 }

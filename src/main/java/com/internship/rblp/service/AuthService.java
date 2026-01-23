@@ -7,6 +7,7 @@ import com.internship.rblp.models.enums.Role;
 import com.internship.rblp.repository.UserRepository; // Import Repo
 import com.internship.rblp.util.JwtUtil;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonObject;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -30,7 +31,7 @@ public class AuthService {
             }
 
             return JwtUtil.generateToken(user.getUserId(), user.getRole(), user.getEmail());
-        });
+        }).subscribeOn(Schedulers.io());
     }
 
     public Single<String> register(JsonObject data) {
@@ -58,6 +59,6 @@ public class AuthService {
 
             userRepository.save(user);
             return JwtUtil.generateToken(user.getUserId(), user.getRole(), user.getEmail());
-        });
+        }).subscribeOn(Schedulers.io());
     }
 }

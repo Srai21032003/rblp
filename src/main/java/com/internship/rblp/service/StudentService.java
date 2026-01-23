@@ -4,6 +4,7 @@ import com.internship.rblp.models.entities.StudentProfile;
 import com.internship.rblp.models.entities.User;
 import com.internship.rblp.repository.UserRepository;
 import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonObject;
 
 import java.time.Instant;
@@ -40,15 +41,6 @@ public class StudentService {
                 user.setStudentProfile(profile);
             }
 
-//            Optional<User> userProfile = userRepository.findById(userId);
-//
-//            if(userProfile.isEmpty()){
-//                throw new RuntimeException("User not found");
-//            }
-
-//            User userP = userProfile.get();
-
-
             if (data.containsKey("courseEnrolled")) profile.setCourseEnrolled(data.getString("courseEnrolled"));
 //            if(data.containsKey("email")) userP.setEmail(data.getString("email"));
 
@@ -59,6 +51,6 @@ public class StudentService {
                     .put("courseEnrolled", profile.getCourseEnrolled())
                     .put("email", user.getEmail())
                     .put("updatedAt", user1.getUpdatedAt());
-        });
+        }).subscribeOn(Schedulers.io());
     }
 }
