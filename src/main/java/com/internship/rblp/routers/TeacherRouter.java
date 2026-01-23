@@ -2,7 +2,7 @@ package com.internship.rblp.routers;
 
 import com.internship.rblp.handlers.middleware.JwtAuthMiddleware;
 import com.internship.rblp.handlers.middleware.RoleMiddleware;
-import com.internship.rblp.handlers.student.SubmitTeacherKycHandler;
+import com.internship.rblp.handlers.teacher.SubmitTeacherKycHandler;
 import com.internship.rblp.handlers.teacher.UpdateTeacherProfileHandler;
 import com.internship.rblp.handlers.teacher.GetTeacherKycStatusHandler;
 import io.vertx.rxjava3.core.Vertx;

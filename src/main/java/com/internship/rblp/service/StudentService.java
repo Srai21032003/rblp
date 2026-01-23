@@ -8,7 +8,6 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonObject;
 
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 public class StudentService {

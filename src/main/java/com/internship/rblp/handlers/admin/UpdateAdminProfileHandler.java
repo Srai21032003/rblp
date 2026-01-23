@@ -11,7 +11,6 @@ public enum UpdateAdminProfileHandler implements Handler<RoutingContext> {
 
     private static AdminService adminService;
 
-    // Static Injection
     public static void init(AdminService service) {
         adminService = service;
     }

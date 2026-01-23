@@ -1,4 +1,4 @@
-package com.internship.rblp.handlers.student;
+package com.internship.rblp.handlers.teacher;
 
 import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;

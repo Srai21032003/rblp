@@ -24,7 +24,6 @@ public class KycService {
     private final KycRepository kycRepository;
     private final UserRepository userRepository;
 
-    // Define the mandatory document types
     private static final Set<String> REQUIRED_DOCS = Set.of("PAN", "AADHAAR", "PASSPORT");
 
     public KycService(KycRepository kycRepository, UserRepository userRepository) {
@@ -62,13 +61,11 @@ public class KycService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // 1. Validate Input Payload
             JsonArray docsArray = data.getJsonArray("documents");
             if (docsArray == null || docsArray.size() < 3) {
                 throw new RuntimeException("All 3 documents (PAN, AADHAAR, PASSPORT) are required.");
             }
 
-            // Check if all required types are present
             Set<String> uploadedTypes = new HashSet<>();
             for (int i = 0; i < docsArray.size(); i++) {
                 try {
@@ -82,38 +79,29 @@ public class KycService {
                 throw new RuntimeException("Missing required documents. You must upload PAN, AADHAAR, and PASSPORT.");
             }
 
-            // 2. Begin Transaction (Atomic Save)
             try (Transaction txn = DB.beginTransaction()) {
 
-                // Fetch existing record via Repo
                 KycDetails kycDetails = kycRepository.findByUserId(userId).orElse(null);
 
-                // Prevent re-submission if already submitted/approved
                 if (kycDetails != null &&
                         (kycDetails.getStatus() == KycStatus.SUBMITTED || kycDetails.getStatus() == KycStatus.APPROVED)) {
                     throw new RuntimeException("KYC is already submitted or approved.");
                 }
 
-                // Create new if not exists
                 if (kycDetails == null) {
                     kycDetails = new KycDetails();
                     kycDetails.setUser(user);
                     kycDetails.setCreatedAt(java.time.Instant.now());
                 }
 
-                // Update Parent Details
                 if (data.containsKey("address")) kycDetails.setAddress(data.getString("address"));
                 if (data.containsKey("dob")) kycDetails.setDob(LocalDate.parse(data.getString("dob")));
 
-                // Set Status
                 kycDetails.setStatus(KycStatus.SUBMITTED);
                 kycDetails.setUpdatedAt(java.time.Instant.now());
 
-                // Save Parent (Repo)
                 kycRepository.save(kycDetails);
 
-                // 3. Handle Documents
-                // Clear old documents if this is a re-submission (e.g. after rejection)
                 kycRepository.deleteDocumentsByKycId(kycDetails);
 
                 for (int i = 0; i < docsArray.size(); i++) {
@@ -125,10 +113,8 @@ public class KycService {
                     doc.setFilePath(docJson.getString("filePath"));
                     doc.setDocumentNumber(docJson.getString("documentNumber"));
 
-                    // Default status for new docs
                     doc.setValidationStatus(ValidationStatus.MANUAL_REVIEW);
 
-                    // Save Child (Repo)
                     kycRepository.saveDocument(doc);
                 }
 
@@ -138,36 +124,28 @@ public class KycService {
         }).subscribeOn(Schedulers.io());
     }
 
-    /**
-     * Admin: Validate a specific document (e.g., Mark PAN as VALID).
-     */
     public Completable validateDocument(String docIdStr, String statusStr, String msg) {
         return Completable.fromAction(() -> {
             UUID docId = UUID.fromString(docIdStr);
             KycDocument doc = kycRepository.findDocumentById(docId)
                     .orElseThrow(() -> new RuntimeException("Document not found"));
 
-            doc.setValidationStatus(ValidationStatus.valueOf(statusStr)); // VALID / INVALID
+            doc.setValidationStatus(ValidationStatus.valueOf(statusStr));
             doc.setValidationMessage(msg);
 
             kycRepository.saveDocument(doc);
         }).subscribeOn(Schedulers.io());
     }
 
-    /**
-     * User: Get Status (Returns overall status + individual doc statuses)
-     */
     public Single<JsonObject> getKycStatus(String userIdStr) {
         return Single.fromCallable(() -> {
             UUID userId = UUID.fromString(userIdStr);
-            // Fetch Details + Linked Documents
             KycDetails kyc = kycRepository.findByUserIdWithDocs(userId).orElse(null);
 
             if (kyc == null) {
                 return new JsonObject().put("status", KycStatus.NOT_SUBMITTED);
             }
 
-            // Build Documents Status Array
             JsonArray docStatuses = new JsonArray();
             if (kyc.getDocuments() != null) {
                 for (KycDocument doc : kyc.getDocuments()) {
@@ -187,9 +165,6 @@ public class KycService {
         }).subscribeOn(Schedulers.io());
     }
 
-    /**
-     * Admin: Get All Submissions (List View)
-     */
     public Single<JsonArray> getAllSubmissions() {
         return Single.fromCallable(() -> {
             List<KycDetails> list = kycRepository.findAllWithUser();
@@ -209,9 +184,6 @@ public class KycService {
         }).subscribeOn(Schedulers.io());
     }
 
-    /**
-     * Admin: Get Full Detail (Detailed View for Review)
-     */
     public Single<JsonObject> getKycDetail(String kycIdStr) {
         return Single.fromCallable(() -> {
             UUID kycId = UUID.fromString(kycIdStr);
@@ -243,9 +215,6 @@ public class KycService {
         }).subscribeOn(Schedulers.io());
     }
 
-    /**
-     * Admin: Overall Approval
-     */
     public Completable approveKyc(String kycIdStr) {
         return Completable.fromAction(() -> {
             UUID kycId = UUID.fromString(kycIdStr);
@@ -258,9 +227,6 @@ public class KycService {
         }).subscribeOn(Schedulers.io());
     }
 
-    /**
-     * Admin: Overall Rejection
-     */
     public Completable rejectKyc(String kycIdStr, String reason) {
         return Completable.fromAction(() -> {
             UUID kycId = UUID.fromString(kycIdStr);

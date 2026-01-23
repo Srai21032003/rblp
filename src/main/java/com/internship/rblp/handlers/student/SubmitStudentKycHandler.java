@@ -4,7 +4,6 @@ import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
-import jakarta.persistence.NamedStoredProcedureQueries;
 
 public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
     INSTANCE;

@@ -11,7 +11,7 @@ import com.internship.rblp.handlers.kyc.GetKycDetailHandler;
 import com.internship.rblp.handlers.kyc.RejectKycHandler;
 import com.internship.rblp.handlers.student.GetStudentKycStatusHandler;
 import com.internship.rblp.handlers.student.SubmitStudentKycHandler;
-import com.internship.rblp.handlers.student.SubmitTeacherKycHandler;
+import com.internship.rblp.handlers.teacher.SubmitTeacherKycHandler;
 import com.internship.rblp.handlers.student.UpdateStudentProfileHandler;
 import com.internship.rblp.handlers.teacher.GetTeacherKycStatusHandler;
 import com.internship.rblp.handlers.teacher.UpdateTeacherProfileHandler;
