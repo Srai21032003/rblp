@@ -2,8 +2,8 @@ package com.internship.rblp.routers;
 
 import com.internship.rblp.handlers.middleware.JwtAuthMiddleware;
 import com.internship.rblp.handlers.admin.UpdateAdminProfileHandler;
-//import com.internship.rblp.handlers.admin.OnboardStudentHandler;
-//import com.internship.rblp.handlers.admin.OnboardTeacherHandler;
+import com.internship.rblp.handlers.admin.OnboardStudentHandler;
+import com.internship.rblp.handlers.admin.OnboardTeacherHandler;
 //import com.internship.rblp.handlers.admin.BulkUploadHandler;
 //import com.internship.rblp.handlers.admin.GetUserListHandler;
 //import com.internship.rblp.handlers.admin.ToggleUserStatusHandler;
@@ -23,8 +23,8 @@ public enum AdminRouter {
 
         // routes
         router.put("/profile").handler(UpdateAdminProfileHandler.INSTANCE);
-//        router.post("/onboard/student").handler(OnboardStudentHandler.INSTANCE);
-//        router.post("/onboard/teacher").handler(OnboardTeacherHandler.INSTANCE);
+        router.post("/onboard/student").handler(OnboardStudentHandler.INSTANCE);
+        router.post("/onboard/teacher").handler(OnboardTeacherHandler.INSTANCE);
 //        router.post("/upload/bulk").handler(BulkUploadHandler.INSTANCE);
 //        router.get("/users").handler(GetUserListHandler.INSTANCE);
 //        router.put("/users/:id/toggle").handler(ToggleUserStatusHandler.INSTANCE);
