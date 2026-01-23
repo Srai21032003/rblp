@@ -1,6 +1,7 @@
 package com.internship.rblp.routers;
 
 import com.internship.rblp.handlers.middleware.JwtAuthMiddleware;
+import com.internship.rblp.handlers.middleware.RoleMiddleware;
 import com.internship.rblp.handlers.student.SubmitStudentKycHandler;
 import com.internship.rblp.handlers.student.UpdateStudentProfileHandler;
 import com.internship.rblp.handlers.student.GetStudentKycStatusHandler;
@@ -17,6 +18,7 @@ public enum StudentRouter {
 
         router.route().handler(BodyHandler.create());
         router.route().handler(JwtAuthMiddleware.INSTANCE);
+        router.route().handler(RoleMiddleware.STUDENT);
 
         //routes
         router.put("/profile").handler(UpdateStudentProfileHandler.INSTANCE);

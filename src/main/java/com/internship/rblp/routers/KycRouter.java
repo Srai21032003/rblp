@@ -5,6 +5,7 @@ import com.internship.rblp.handlers.kyc.GetAllKycHandler;
 import com.internship.rblp.handlers.kyc.GetKycDetailHandler;
 import com.internship.rblp.handlers.kyc.RejectKycHandler;
 import com.internship.rblp.handlers.middleware.JwtAuthMiddleware;
+import com.internship.rblp.handlers.middleware.RoleMiddleware;
 import io.vertx.rxjava3.core.Vertx;
 import io.vertx.rxjava3.ext.web.Router;
 import io.vertx.rxjava3.ext.web.handler.BodyHandler;
@@ -16,6 +17,7 @@ public enum KycRouter {
 
         router.route().handler(BodyHandler.create());
         router.route().handler(JwtAuthMiddleware.INSTANCE);
+        router.route().handler(RoleMiddleware.ADMIN);
 
         router.get("/").handler(GetAllKycHandler.INSTANCE);
         router.get("/:kycId").handler(GetKycDetailHandler.INSTANCE);

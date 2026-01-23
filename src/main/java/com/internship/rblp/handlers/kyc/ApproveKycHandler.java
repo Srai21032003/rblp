@@ -29,7 +29,7 @@ public enum ApproveKycHandler implements Handler<RoutingContext> {
 
         kycService.approveKyc(kycIdStr)
                 .subscribe(
-                        ignore ->{
+                        () ->{
                             ctx.response()
                                     .setStatusCode(200)
                                     .putHeader("Content-Type", "application/json")

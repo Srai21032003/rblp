@@ -40,7 +40,7 @@ public enum RejectKycHandler implements Handler<RoutingContext> {
 
         kycService.rejectKyc(kycIdStr, reason)
                 .subscribe(
-                        ignore ->{
+                        () ->{
                             ctx.response()
                                     .setStatusCode(200)
                                     .putHeader("Content-Type", "application/json")

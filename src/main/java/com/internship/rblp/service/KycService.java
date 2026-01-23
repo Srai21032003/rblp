@@ -10,6 +10,7 @@ import com.internship.rblp.repository.KycRepository;
 import com.internship.rblp.repository.UserRepository;
 import io.ebean.DB;
 import io.ebean.Transaction;
+import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Single;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -245,8 +246,8 @@ public class KycService {
     /**
      * Admin: Overall Approval
      */
-    public Single<Void> approveKyc(String kycIdStr) {
-        return Single.fromCallable(() -> {
+    public Completable approveKyc(String kycIdStr) {
+        return Completable.fromAction(() -> {
             UUID kycId = UUID.fromString(kycIdStr);
             KycDetails kyc = kycRepository.findById(kycId)
                     .orElseThrow(() -> new RuntimeException("KYC not found"));
@@ -254,15 +255,14 @@ public class KycService {
             kyc.setStatus(KycStatus.APPROVED);
             kyc.setUpdatedAt(java.time.Instant.now());
             kycRepository.save(kyc);
-            return null;
         });
     }
 
     /**
      * Admin: Overall Rejection
      */
-    public Single<Void> rejectKyc(String kycIdStr, String reason) {
-        return Single.fromCallable(() -> {
+    public Completable rejectKyc(String kycIdStr, String reason) {
+        return Completable.fromAction(() -> {
             UUID kycId = UUID.fromString(kycIdStr);
             KycDetails kyc = kycRepository.findById(kycId)
                     .orElseThrow(() -> new RuntimeException("KYC not found"));
@@ -271,7 +271,6 @@ public class KycService {
             kyc.setAdminRemarks(reason);
             kyc.setUpdatedAt(java.time.Instant.now());
             kycRepository.save(kyc);
-            return null;
         });
     }
 }
