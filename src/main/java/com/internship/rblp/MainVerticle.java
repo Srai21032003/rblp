@@ -2,6 +2,10 @@ package com.internship.rblp;
 
 import com.internship.rblp.config.AppDatabaseConfig;
 import com.internship.rblp.handlers.admin.*;
+import com.internship.rblp.handlers.kyc.ApproveKycHandler;
+import com.internship.rblp.handlers.kyc.GetAllKycHandler;
+import com.internship.rblp.handlers.kyc.GetKycDetailHandler;
+import com.internship.rblp.handlers.kyc.RejectKycHandler;
 import com.internship.rblp.handlers.student.GetStudentKycStatusHandler;
 import com.internship.rblp.handlers.student.SubmitStudentKycHandler;
 import com.internship.rblp.handlers.student.SubmitTeacherKycHandler;
@@ -68,6 +72,10 @@ public class MainVerticle extends AbstractVerticle {
         GetUserListHandler.init(adminService);
 
         KycService kycService = new KycService(kycRepository, userRepository);
+        GetAllKycHandler.init(kycService);
+        GetKycDetailHandler.init(kycService);
+        ApproveKycHandler.init(kycService);
+        RejectKycHandler.init(kycService);
 
         StudentService studentService = new StudentService(userRepository);
         UpdateStudentProfileHandler.init(studentService);
