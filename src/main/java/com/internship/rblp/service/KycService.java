@@ -39,7 +39,6 @@ public class KycService {
                 throw new RuntimeException("All 3 documents (PAN, AADHAAR, PASSPORT) are required.");
             }
 
-            // Transaction logic stays in Service, but calls Repo methods
             try (Transaction txn = DB.beginTransaction()) {
 
                 KycDetails kycDetails = kycRepository.findByUserId(userId).orElse(null);
@@ -59,10 +58,10 @@ public class KycService {
                 if (data.containsKey("dob")) kycDetails.setDob(LocalDate.parse(data.getString("dob")));
 
                 kycDetails.setStatus(KycStatus.SUBMITTED);
-                kycRepository.save(kycDetails); // Repo call
+                kycRepository.save(kycDetails);
 
                 // Clean old docs
-                kycRepository.deleteDocumentsByKycId(kycDetails); // Repo call
+                kycRepository.deleteDocumentsByKycId(kycDetails);
 
                 for (int i = 0; i < docsArray.size(); i++) {
                     JsonObject docJson = docsArray.getJsonObject(i);
@@ -74,7 +73,7 @@ public class KycService {
                     doc.setDocumentNumber(docJson.getString("documentNumber"));
                     doc.setValidationStatus(ValidationStatus.MANUAL_REVIEW);
 
-                    kycRepository.saveDocument(doc); // Repo call
+                    kycRepository.saveDocument(doc);
                 }
 
                 txn.commit();

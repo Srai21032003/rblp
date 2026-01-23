@@ -10,19 +10,17 @@ import org.slf4j.LoggerFactory;
 
 public enum AuthHandler implements Handler<RoutingContext> {
 
-    // The Enum Constants act as the specific handlers
     LOGIN,
     SIGNUP;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthHandler.class);
     private static AuthService authService;
 
-    // 1. Static Init Method to inject the service
+    // inject the service
     public static void init(AuthService service) {
         authService = service;
     }
 
-    // 2. The main handle method dispatches based on "this"
     @Override
     public void handle(RoutingContext ctx) {
         if (authService == null) {
@@ -35,7 +33,6 @@ public enum AuthHandler implements Handler<RoutingContext> {
         }
     }
 
-    // --- Logic for Login ---
     private void handleLogin(RoutingContext ctx) {
         JsonObject body = ctx.body().asJsonObject();
         if (body == null || !body.containsKey("email") || !body.containsKey("password")) {
@@ -56,7 +53,6 @@ public enum AuthHandler implements Handler<RoutingContext> {
                 );
     }
 
-    // --- Logic for Signup ---
     private void handleSignup(RoutingContext ctx) {
         JsonObject body = ctx.body().asJsonObject();
         // Validation...

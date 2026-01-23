@@ -22,7 +22,6 @@ public class AdminService {
         this.userRepository = userRepository;
     }
 
-    // Onboard a User manually
     public Single<JsonObject> onboardUser(JsonObject data) {
         return Single.fromCallable(() -> {
             String email = data.getString("email");
@@ -30,7 +29,6 @@ public class AdminService {
                 throw new RuntimeException("User already exists");
             }
 
-            // Transaction stays in Service layer as it coordinates business logic
             try (Transaction txn = DB.beginTransaction()) {
                 User user = new User();
                 user.setFullName(data.getString("fullName"));
@@ -51,7 +49,7 @@ public class AdminService {
                     user.setTeacherProfile(tp);
                 }
 
-                userRepository.save(user); // Repo handles the save
+                userRepository.save(user);
                 txn.commit();
 
                 return new JsonObject().put("userId", user.getUserId().toString()).put("email", user.getEmail());
@@ -77,6 +75,25 @@ public class AdminService {
                     .put("userId", userIdStr)
                     .put("isActive", user.getIsActive())
                     .put("message", "User status updated");
+        });
+    }
+
+    public Single<JsonObject> updateAdminProfile(String userIdStr, JsonObject data) {
+        return Single.fromCallable(() -> {
+            UUID userId = UUID.fromString(userIdStr);
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (data.containsKey("fullName")) {
+                user.setFullName(data.getString("fullName"));
+            }
+
+            userRepository.save(user);
+
+            return new JsonObject()
+                    .put("userId", user.getUserId().toString())
+                    .put("fullName", user.getFullName())
+                    .put("email", user.getEmail());
         });
     }
 }

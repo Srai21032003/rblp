@@ -1,10 +1,12 @@
 package com.internship.rblp;
 
 import com.internship.rblp.config.AppDatabaseConfig;
+import com.internship.rblp.handlers.admin.UpdateAdminProfileHandler;
+import com.internship.rblp.handlers.student.UpdateStudentProfileHandler;
+import com.internship.rblp.handlers.teacher.UpdateTeacherProfileHandler;
 import com.internship.rblp.repository.KycRepository;
 import com.internship.rblp.repository.UserRepository;
-import com.internship.rblp.routers.AuthRouter;
-import com.internship.rblp.routers.UserRouter;
+import com.internship.rblp.routers.*;
 import com.internship.rblp.handlers.auth.AuthHandler;
 import com.internship.rblp.routers.AuthRouter;
 import com.internship.rblp.routers.UserRouter;
@@ -27,7 +29,7 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public Completable rxStart() {
-        // 1. Setup Config Retriever to read 'application.properties'
+        // to read application.properties
         ConfigStoreOptions fileStore = new ConfigStoreOptions()
                 .setType("file")
                 .setFormat("properties")
@@ -42,8 +44,6 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     private Completable startApplication(JsonObject config) {
-        // A. Initialize Database (Sync operation)
-        // We wrap this in a try-catch block because it's blocking/synchronous
         try {
             AppDatabaseConfig.init(config);
         } catch (Exception e) {
@@ -56,15 +56,20 @@ public class MainVerticle extends AbstractVerticle {
         AuthService authService = new AuthService(userRepository);
         AuthHandler.init(authService);
 
-        AdminService adminService = new AdminService(userRepository); // Update AdminService too
-//        StudentService studentService = new StudentService(userRepository); // Update StudentService
-//        TeacherService teacherService = new TeacherService(userRepository); // Update TeacherService
+        AdminService adminService = new AdminService(userRepository);
+        UpdateAdminProfileHandler.init(adminService);
+
+        StudentService studentService = new StudentService(userRepository);
+        UpdateStudentProfileHandler.init(studentService);
+
+        TeacherService teacherService = new TeacherService(userRepository);
+        UpdateTeacherProfileHandler.init(teacherService);
+
         KycService kycService = new KycService(kycRepository, userRepository);
 //        BulkUploadService bulkUploadService = new BulkUploadService(adminService);
 
         Router router = Router.router(vertx);
 
-        // Simple health check route to verify server is up
         router.get("/health").handler(ctx -> ctx.json(new JsonObject().put("status", "UP")));
 
         // Mount Sub-Routers
@@ -73,6 +78,9 @@ public class MainVerticle extends AbstractVerticle {
 
         //PROTECTED
         router.route("/api/user/*").subRouter(UserRouter.INSTANCE.create(vertx));
+        router.route("/api/admin/*").subRouter(AdminRouter.INSTANCE.create(vertx));
+        router.route("/api/student/*").subRouter(StudentRouter.INSTANCE.create(vertx));
+        router.route("/api/teacher/*").subRouter(TeacherRouter.INSTANCE.create(vertx));
 
 
 //        try {
@@ -85,7 +93,8 @@ public class MainVerticle extends AbstractVerticle {
 //            t.printStackTrace(); // <--- This will print the REAL error to your console
 //            return Completable.error(t);
 //        }
-        // C. Start HTTP Server
+
+
         int port = Integer.parseInt(config.getString("server.port", "8080"));
 
         HttpServer server = vertx.createHttpServer();
@@ -94,6 +103,6 @@ public class MainVerticle extends AbstractVerticle {
                 .rxListen(port)
                 .doOnSuccess(s -> logger.info("HTTP Server started on port {}", port))
                 .doOnError(err -> logger.error("Failed to start HTTP server", err))
-                .ignoreElement(); // Convert Single<HttpServer> to Completable
+                .ignoreElement();
     }
 }

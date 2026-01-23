@@ -1,7 +1,7 @@
 package com.internship.rblp.routers;
 
 import com.internship.rblp.handlers.middleware.JwtAuthMiddleware;
-import com.internship.rblp.handlers.user.UserHandler;
+import com.internship.rblp.handlers.user.GetProfileHandler;
 import io.vertx.rxjava3.core.Vertx;
 import io.vertx.rxjava3.ext.web.Router;
 
@@ -13,7 +13,7 @@ public enum UserRouter {
 
         router.route().handler(JwtAuthMiddleware.INSTANCE);
 
-        router.route().handler(UserHandler.GET_PROFILE);
+        router.route().handler(GetProfileHandler.GET_PROFILE);
 
         return router;
     }

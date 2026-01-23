@@ -1,24 +1,24 @@
-package com.internship.rblp.handlers.student;
+package com.internship.rblp.handlers.teacher;
 
-import com.internship.rblp.service.StudentService;
+import com.internship.rblp.service.TeacherService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 
-public enum UpdateStudentProfileHandler implements Handler<RoutingContext> {
+public enum UpdateTeacherProfileHandler implements Handler<RoutingContext> {
 
     INSTANCE;
 
-    private static StudentService studentService;
+    private static TeacherService teacherService;
 
-    public static void init(StudentService service) {
-        studentService = service;
+    public static void init(TeacherService service) {
+        teacherService = service;
     }
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (studentService == null) {
-            ctx.fail(500, new RuntimeException("StudentService not initialized"));
+        if (teacherService == null) {
+            ctx.fail(500, new RuntimeException("TeacherService not initialized"));
             return;
         }
 
@@ -26,22 +26,19 @@ public enum UpdateStudentProfileHandler implements Handler<RoutingContext> {
         JsonObject body = ctx.body().asJsonObject();
 
         if (body == null || body.isEmpty()) {
-            ctx.response()
-                    .setStatusCode(400)
-                    .putHeader("Content-Type", "application/json")
+            ctx.response().setStatusCode(400)
                     .end(new JsonObject().put("error", "Request body is required").encode());
             return;
         }
 
-        // Call Service
-        studentService.updateProfile(userId, body)
+        teacherService.updateProfile(userId, body)
                 .subscribe(
                         updatedJson -> {
                             ctx.response()
                                     .setStatusCode(200)
                                     .putHeader("Content-Type", "application/json")
                                     .end(new JsonObject()
-                                            .put("message", "Student profile updated")
+                                            .put("message", "Teacher profile updated")
                                             .put("data", updatedJson)
                                             .encode()
                                     );
@@ -50,7 +47,6 @@ public enum UpdateStudentProfileHandler implements Handler<RoutingContext> {
                             int statusCode = err.getMessage().contains("not found") ? 404 : 500;
                             ctx.response()
                                     .setStatusCode(statusCode)
-                                    .putHeader("Content-Type", "application/json")
                                     .end(new JsonObject().put("error", err.getMessage()).encode());
                         }
                 );

@@ -1,24 +1,25 @@
-package com.internship.rblp.handlers.student;
+package com.internship.rblp.handlers.admin;
 
-import com.internship.rblp.service.StudentService;
+import com.internship.rblp.service.AdminService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 
-public enum UpdateStudentProfileHandler implements Handler<RoutingContext> {
+public enum UpdateAdminProfileHandler implements Handler<RoutingContext> {
 
     INSTANCE;
 
-    private static StudentService studentService;
+    private static AdminService adminService;
 
-    public static void init(StudentService service) {
-        studentService = service;
+    // Static Injection
+    public static void init(AdminService service) {
+        adminService = service;
     }
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (studentService == null) {
-            ctx.fail(500, new RuntimeException("StudentService not initialized"));
+        if (adminService == null) {
+            ctx.fail(500, new RuntimeException("AdminService not initialized"));
             return;
         }
 
@@ -26,31 +27,26 @@ public enum UpdateStudentProfileHandler implements Handler<RoutingContext> {
         JsonObject body = ctx.body().asJsonObject();
 
         if (body == null || body.isEmpty()) {
-            ctx.response()
-                    .setStatusCode(400)
-                    .putHeader("Content-Type", "application/json")
+            ctx.response().setStatusCode(400)
                     .end(new JsonObject().put("error", "Request body is required").encode());
             return;
         }
 
-        // Call Service
-        studentService.updateProfile(userId, body)
+        adminService.updateAdminProfile(userId, body)
                 .subscribe(
                         updatedJson -> {
                             ctx.response()
                                     .setStatusCode(200)
                                     .putHeader("Content-Type", "application/json")
                                     .end(new JsonObject()
-                                            .put("message", "Student profile updated")
+                                            .put("message", "Admin profile updated")
                                             .put("data", updatedJson)
                                             .encode()
                                     );
                         },
                         err -> {
-                            int statusCode = err.getMessage().contains("not found") ? 404 : 500;
                             ctx.response()
-                                    .setStatusCode(statusCode)
-                                    .putHeader("Content-Type", "application/json")
+                                    .setStatusCode(500)
                                     .end(new JsonObject().put("error", err.getMessage()).encode());
                         }
                 );

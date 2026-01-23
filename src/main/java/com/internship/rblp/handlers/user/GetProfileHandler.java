@@ -8,7 +8,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 import java.util.UUID;
 
-public enum UserHandler implements Handler<RoutingContext> {
+public enum GetProfileHandler implements Handler<RoutingContext> {
 
     GET_PROFILE;
 

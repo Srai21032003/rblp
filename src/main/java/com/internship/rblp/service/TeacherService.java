@@ -31,7 +31,6 @@ public class TeacherService {
                 user.setTeacherProfile(profile);
             }
 
-            // Update allowed fields
             if (data.containsKey("experienceYears")) profile.setExperienceYears(data.getInteger("experienceYears"));
             if (data.containsKey("qualification")) profile.setQualification(data.getString("qualification"));
 
