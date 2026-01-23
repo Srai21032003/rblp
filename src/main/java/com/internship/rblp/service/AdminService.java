@@ -23,39 +23,56 @@ public class AdminService {
         this.userRepository = userRepository;
     }
 
-    public Single<JsonObject> onboardUser(JsonObject data) {
-        return Single.fromCallable(() -> {
-            String email = data.getString("email");
-            if (userRepository.existsByEmail(email)) {
-                throw new RuntimeException("User already exists");
+    public Single<JsonObject> onboardUser(JsonObject data){
+        return Single.fromCallable(() -> createUserSync(data)).subscribeOn(Schedulers.io());
+    }
+
+    public JsonObject createUserSync(JsonObject data) {
+
+        String email = data.getString("email");
+
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("User already exists with email:"+email);
+        }
+
+        try (Transaction txn = DB.beginTransaction()) {
+            User user = new User();
+            user.setFullName(data.getString("fullName"));
+            user.setEmail(email);
+
+            if(data.containsKey("mobileNumber")){
+                user.setMobileNumber(data.getString("mobileNumber"));
             }
 
-            try (Transaction txn = DB.beginTransaction()) {
-                User user = new User();
-                user.setFullName(data.getString("fullName"));
-                user.setEmail(email);
-
-                String rawPass = data.getString("password", "Welcome123");
-                user.setPassword(BCrypt.hashpw(rawPass, BCrypt.gensalt()));
+            String rawPass = data.getString("password", "Welcome123");
+            user.setPassword(BCrypt.hashpw(rawPass, BCrypt.gensalt()));
+            try {
                 user.setRole(Role.valueOf(data.getString("role").toUpperCase()));
-                user.setIsActive(true);
-
-                if (user.getRole() == Role.STUDENT) {
-                    StudentProfile sp = new StudentProfile();
-                    sp.setUser(user);
-                    user.setStudentProfile(sp);
-                } else if (user.getRole() == Role.TEACHER) {
-                    TeacherProfile tp = new TeacherProfile();
-                    tp.setUser(user);
-                    user.setTeacherProfile(tp);
-                }
-
-                userRepository.save(user);
-                txn.commit();
-
-                return new JsonObject().put("userId", user.getUserId().toString()).put("email", user.getEmail());
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException("Invalid Role: " + data.getString("role"));
             }
-        }).subscribeOn(Schedulers.io());
+
+            user.setIsActive(true);
+
+            if (user.getRole() == Role.STUDENT) {
+                StudentProfile sp = new StudentProfile();
+                sp.setUser(user);
+                user.setStudentProfile(sp);
+            } else if (user.getRole() == Role.TEACHER) {
+                TeacherProfile tp = new TeacherProfile();
+                tp.setUser(user);
+                user.setTeacherProfile(tp);
+            }
+
+            userRepository.save(user);
+            txn.commit();
+
+            return new JsonObject()
+                    .put("userId",user.getUserId().toString())
+                    .put("email",user.getEmail());
+        } catch(Exception e){
+            throw new RuntimeException("database error:"+e.getMessage());
+        }
     }
 
     public Single<List<User>> getAllUsers() {

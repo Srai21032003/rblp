@@ -2,6 +2,9 @@ package com.internship.rblp;
 
 import com.internship.rblp.config.AppDatabaseConfig;
 import com.internship.rblp.handlers.admin.*;
+import com.internship.rblp.handlers.admin.bulkupload.GetBulkErrorsHandler;
+import com.internship.rblp.handlers.admin.bulkupload.GetBulkStatusHandler;
+import com.internship.rblp.handlers.admin.bulkupload.StartBulkUploadHandler;
 import com.internship.rblp.handlers.kyc.ApproveKycHandler;
 import com.internship.rblp.handlers.kyc.GetAllKycHandler;
 import com.internship.rblp.handlers.kyc.GetKycDetailHandler;
@@ -12,6 +15,7 @@ import com.internship.rblp.handlers.student.SubmitTeacherKycHandler;
 import com.internship.rblp.handlers.student.UpdateStudentProfileHandler;
 import com.internship.rblp.handlers.teacher.GetTeacherKycStatusHandler;
 import com.internship.rblp.handlers.teacher.UpdateTeacherProfileHandler;
+import com.internship.rblp.repository.BulkUploadRepository;
 import com.internship.rblp.repository.KycRepository;
 import com.internship.rblp.repository.UserRepository;
 import com.internship.rblp.routers.*;
@@ -61,6 +65,8 @@ public class MainVerticle extends AbstractVerticle {
         UserRepository userRepository = new UserRepository();
         KycRepository kycRepository = new KycRepository();
 
+        BulkUploadRepository bulkRepo = new BulkUploadRepository();
+
         AuthService authService = new AuthService(userRepository);
         AuthHandler.init(authService);
 
@@ -87,7 +93,11 @@ public class MainVerticle extends AbstractVerticle {
         SubmitTeacherKycHandler.init(kycService);
         GetTeacherKycStatusHandler.init(kycService);
 
-//        BulkUploadService bulkUploadService = new BulkUploadService(adminService);
+        BulkUploadService bulkService = new BulkUploadService(bulkRepo,adminService,vertx);
+
+        StartBulkUploadHandler.init(bulkService);
+        GetBulkStatusHandler.init(bulkService);
+        GetBulkErrorsHandler.init(bulkService);
 
         Router router = Router.router(vertx);
 

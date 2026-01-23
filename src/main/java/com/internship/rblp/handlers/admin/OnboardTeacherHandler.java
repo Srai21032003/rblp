@@ -37,7 +37,9 @@ public enum OnboardTeacherHandler implements Handler<RoutingContext> {
             body.put("password", "Welcome123@");
         }
 
-        adminService.onboardUser(body)
+        adminService.onboardUser(
+
+                body)
                 .subscribe(
                         result -> {
                             ctx.response()
