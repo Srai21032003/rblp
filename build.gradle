@@ -9,7 +9,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 import org.gradle.api.tasks.testing.logging.TestLogEvent.*
 
 ebean {
-    debugLevel = 1
+    debugLevel = 0
 }
 
 group = "com.internship.rblp"
