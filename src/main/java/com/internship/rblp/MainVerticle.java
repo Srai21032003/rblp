@@ -77,7 +77,7 @@ public class MainVerticle extends AbstractVerticle {
         ToggleUserStatusHandler.init(adminService);
         GetUserListHandler.init(adminService);
 
-        KycService kycService = new KycService(kycRepository, userRepository);
+        KycService kycService = new KycService(kycRepository, userRepository,vertx);
         GetAllKycHandler.init(kycService);
         GetKycDetailHandler.init(kycService);
         ApproveKycHandler.init(kycService);

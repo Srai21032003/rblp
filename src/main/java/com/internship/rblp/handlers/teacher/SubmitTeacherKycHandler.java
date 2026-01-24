@@ -2,59 +2,87 @@ package com.internship.rblp.handlers.teacher;
 
 import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.rxjava3.ext.web.FileUpload;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+
+import java.util.List;
 
 public enum SubmitTeacherKycHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static KycService kycService;
 
-    public static void init(KycService service){
+    public static void init(KycService service) {
         kycService = service;
     }
-    @Override
-    public void handle(RoutingContext ctx){
 
-        if(kycService == null){
+    @Override
+    public void handle(RoutingContext ctx) {
+        if (kycService == null) {
             ctx.fail(500, new RuntimeException("KycService not initialized"));
             return;
         }
 
         String userId = ctx.get("userId");
-        JsonObject body = ctx.body().asJsonObject();
+        List<FileUpload> uploads = ctx.fileUploads();
 
-        if(body == null || body.isEmpty()){
+        if (uploads.size() < 3) {
             ctx.response().setStatusCode(400)
-                    .putHeader("Content-Type","application/json")
-                    .end(new JsonObject().put("error", "Request body is required").encode());
+                    .putHeader("Content-Type", "application/json")
+                    .end(new JsonObject().put("error", "Please upload all 3 documents (PAN, Aadhaar, Passport)").encode());
             return;
         }
 
-        kycService.submitKyc(userId,body)
+        String address = ctx.request().getFormAttribute("address");
+        String dob = ctx.request().getFormAttribute("dob");
+
+        JsonArray docsArray = new JsonArray();
+
+        for (FileUpload f : uploads) {
+            JsonObject doc = new JsonObject();
+
+            doc.put("filePath", f.uploadedFileName());
+
+            doc.put("originalFileName", f.fileName());
+
+            if (f.name().equals("panFile")) {
+                doc.put("docType", "PAN");
+                doc.put("documentNumber", ctx.request().getFormAttribute("panNumber"));
+                doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPan"));
+            } else if (f.name().equals("aadhaarFile")) {
+                doc.put("docType", "AADHAAR");
+                doc.put("documentNumber", ctx.request().getFormAttribute("aadhaarNumber"));
+                doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnAadhaar"));
+            } else if (f.name().equals("passportFile")) {
+                doc.put("docType", "PASSPORT");
+                doc.put("documentNumber", ctx.request().getFormAttribute("passportNumber"));
+                doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPassport"));
+            }
+            docsArray.add(doc);
+        }
+
+        JsonObject serviceData = new JsonObject()
+                .put("address", address)
+                .put("dob", dob)
+                .put("documents", docsArray);
+
+        // 4. Call Service
+        kycService.submitKyc(userId, serviceData)
                 .subscribe(
-                        kycId -> {
-                            ctx.response()
-                                    .setStatusCode(201)
-                                    .putHeader("Content-Type", "application/json")
-                                    .end(new JsonObject()
-                                            .put("message", "Teacher KYC submitted successfully")
-                                            .put("kycId", kycId).encode());
-                        },
+                        kycId -> ctx.response().setStatusCode(200)
+                                .putHeader("Content-Type", "application/json")
+                                .end(new JsonObject()
+                                        .put("message", "Teacher KYC submitted successfully")
+                                        .put("kycId", kycId).encode()),
                         err -> {
-                            int statusCode = 500;
+                            uploads.forEach(f -> ctx.vertx().fileSystem().delete(f.uploadedFileName()));
 
-                            String msg = err.getMessage();
-
-                            if(msg.contains("already submitted")){
-                                statusCode = 409;
-                            } else if(msg.contains("required")){
-                                statusCode = 400;
-                            }
-                            ctx.response()
-                                    .setStatusCode(statusCode)
+                            int statusCode = err.getMessage().contains("already submitted") ? 409 : 500;
+                            ctx.response().setStatusCode(statusCode)
                                     .putHeader("Content-Type", "application/json")
-                                    .end(new JsonObject().put("error", msg).encode());
+                                    .end(new JsonObject().put("error", err.getMessage()).encode());
                         }
                 );
     }

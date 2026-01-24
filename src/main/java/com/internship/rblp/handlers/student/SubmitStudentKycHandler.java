@@ -2,8 +2,13 @@ package com.internship.rblp.handlers.student;
 
 import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.rxjava3.ext.web.FileUpload;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+
+import java.util.List;
+import java.util.Set;
 
 public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
     INSTANCE;
@@ -22,16 +27,48 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
         }
 
         String userId = ctx.get("userId");
-        JsonObject body = ctx.body().asJsonObject();
+        List<FileUpload> uploads = ctx.fileUploads();
 
-        if(body == null || body.isEmpty()){
+        if(uploads.size() < 3){
             ctx.response().setStatusCode(400)
-                    .putHeader("Content-Type","application/json")
-                    .end(new JsonObject().put("error", "Request body is required").encode());
+                    .end(new JsonObject()
+                            .put("error","Please upload all 3 documents")
+                            .encode());
             return;
         }
 
-        kycService.submitKyc(userId,body)
+        String address = ctx.request().getFormAttribute("address");
+        String dob = ctx.request().getFormAttribute("dob");
+
+        JsonArray docsArray = new JsonArray();
+
+        for (FileUpload f : uploads) {
+            JsonObject doc = new JsonObject();
+            doc.put("filePath", f.uploadedFileName());
+            doc.put("originalFileName",f.fileName());
+
+            if (f.name().equals("panFile")) {
+                doc.put("docType", "PAN");
+                doc.put("documentNumber", ctx.request().getFormAttribute("panNumber"));
+                doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPan"));
+            } else if (f.name().equals("aadhaarFile")) {
+                doc.put("docType", "AADHAAR");
+                doc.put("documentNumber", ctx.request().getFormAttribute("aadhaarNumber"));
+                doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnAadhaar"));
+            } else if (f.name().equals("passportFile")) {
+                doc.put("docType", "PASSPORT");
+                doc.put("documentNumber", ctx.request().getFormAttribute("passportNumber"));
+                doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPassport"));
+            }
+            docsArray.add(doc);
+        }
+
+        JsonObject serviceData = new JsonObject()
+                .put("address", address)
+                .put("dob", dob)
+                .put("documents", docsArray);
+
+        kycService.submitKyc(userId,serviceData)
                 .subscribe(
                         kycId -> {
                             ctx.response()
@@ -42,19 +79,12 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
                                             .put("kycId", kycId).encode());
                         },
                         err -> {
-                            int statusCode = 500;
+                            uploads.forEach(f -> ctx.vertx().fileSystem().delete(f.uploadedFileName()));
 
-                            String msg = err.getMessage();
-
-                            if(msg.contains("already submitted")){
-                                statusCode = 409;
-                            } else if(msg.contains("required")){
-                                statusCode = 400;
-                            }
-                            ctx.response()
-                                    .setStatusCode(statusCode)
+                            int statusCode = err.getMessage().contains("already submitted") ? 409 : 500;
+                            ctx.response().setStatusCode(statusCode)
                                     .putHeader("Content-Type", "application/json")
-                                    .end(new JsonObject().put("error", msg).encode());
+                                    .end(new JsonObject().put("error", err.getMessage()).encode());
                         }
                 );
     }
