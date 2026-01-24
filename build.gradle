@@ -57,6 +57,10 @@ dependencies {
     // JSON handling - ebean using Jackson
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
+    // to load .env files
+    implementation("io.github.cdimascio:dotenv-java:3.0.0")
+
+
     // Add this to dependencies
     annotationProcessor("org.projectlombok:lombok:1.18.38")
 

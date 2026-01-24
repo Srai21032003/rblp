@@ -4,6 +4,7 @@ import io.ebean.Database;
 import io.ebean.config.DatabaseConfig;
 import io.ebean.DatabaseFactory;
 import io.ebean.datasource.DataSourceConfig;
+import io.github.cdimascio.dotenv.Dotenv;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,24 +16,22 @@ public class AppDatabaseConfig {
     // initialize DB connection using application.properties
     public static void init(JsonObject config) {
         logger.info("Initializing Database Connection...");
+        Dotenv dotenv = Dotenv.load();
 
         DataSourceConfig dataSourceConfig = new DataSourceConfig();
-        dataSourceConfig.setUsername(config.getString("datasource.username"));
-        dataSourceConfig.setPassword(config.getString("datasource.password"));
-        dataSourceConfig.setUrl(config.getString("datasource.url"));
-        dataSourceConfig.setDriver(config.getString("datasource.driver"));
+        dataSourceConfig.setUsername(dotenv.get("DB_USERNAME"));
+        dataSourceConfig.setPassword(dotenv.get("DB_PASSWORD"));
+        dataSourceConfig.setUrl(dotenv.get("DB_URL"));
+        dataSourceConfig.setDriver(dotenv.get("DB_DRIVER"));
 
         DatabaseConfig dbConfig = new DatabaseConfig();
 
         dbConfig.setDataSourceConfig(dataSourceConfig);
         dbConfig.addPackage("com.internship.rblp.models.entities");
 
-        // Development settings: Generate/Run DDL based on properties
-        // This will auto-create your tables based on your Entities
-        dbConfig.setDdlGenerate(Boolean.parseBoolean(config.getString("ebean.ddl.generate", "false")));
-        dbConfig.setDdlRun(Boolean.parseBoolean(config.getString("ebean.ddl.run", "false")));
+        dbConfig.setDdlGenerate(Boolean.parseBoolean(dotenv.get("EBEAN_DDL_GENERATE", "false")));
+        dbConfig.setDdlRun(Boolean.parseBoolean(dotenv.get("EBEAN_DDL_RUN", "false")));
 
-        // Explicitly set as default server to allow static access (e.g., User.find.byId(...))
         dbConfig.setDefaultServer(true);
 
         try {

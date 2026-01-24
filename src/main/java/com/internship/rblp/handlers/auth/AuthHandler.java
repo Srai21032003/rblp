@@ -43,7 +43,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
         authService.login(body.getString("email"), body.getString("password"))
                 .subscribe(
                         token -> {
-                            logger.info("Login success: {}", body.getString("email"));
+                            logger.info("Login success:");
                             ctx.json(new JsonObject().put("token", token));
                         },
                         err -> {
