@@ -49,6 +49,9 @@ dependencies {
     //for getters and setters
     implementation("org.projectlombok:lombok:1.18.38")
 
+    //for cookies
+    implementation("io.vertx:vertx-core:5.0.7")
+
     // JWT
     implementation("io.jsonwebtoken:jjwt-api:0.12.3")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")

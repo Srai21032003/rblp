@@ -5,11 +5,14 @@ import com.internship.rblp.service.AdminService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum OnboardTeacherHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static AdminService adminService;
+    private static final Logger logger = LoggerFactory.getLogger(OnboardTeacherHandler.class);
 
     public static void init(AdminService service){
         adminService = service;
@@ -42,6 +45,7 @@ public enum OnboardTeacherHandler implements Handler<RoutingContext> {
                 body)
                 .subscribe(
                         result -> {
+                            logger.info("Teacher onboarded");
                             ctx.response()
                                     .setStatusCode(201)
                                     .putHeader("Content-Type", "application/json")
@@ -51,6 +55,7 @@ public enum OnboardTeacherHandler implements Handler<RoutingContext> {
                                             .encode());
                         },
                         err -> {
+                            logger.error("Error onboarding teacher:",err);
                             int statusCode = err.getMessage().contains("exists")? 409 : 500;
                             ctx.response()
                                     .setStatusCode(statusCode)

@@ -5,6 +5,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.FileUpload;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -12,6 +14,7 @@ public enum StartBulkUploadHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static BulkUploadService service;
+    private static final Logger logger = LoggerFactory.getLogger(StartBulkUploadHandler.class);
 
     public static void init(BulkUploadService s) { service = s; }
 
@@ -40,6 +43,7 @@ public enum StartBulkUploadHandler implements Handler<RoutingContext> {
         service.startBulkUpload(file.uploadedFileName(), adminId)
                 .subscribe(
                         uploadId -> {
+                            logger.info("Initiated bulk upload");
                             ctx.response().setStatusCode(202)
                                     .putHeader("Content-Type", "application/json")
                                     .end(new JsonObject()
@@ -47,7 +51,10 @@ public enum StartBulkUploadHandler implements Handler<RoutingContext> {
                                             .put("uploadId", uploadId)
                                             .encode());
                         },
-                        err -> ctx.fail(500, err)
+                        err -> {
+                            logger.error("Error initiating bulk upload: ", err);
+                            ctx.fail(500, err);
+                        }
                 );
     }
 }

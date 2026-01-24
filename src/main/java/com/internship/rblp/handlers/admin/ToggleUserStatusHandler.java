@@ -5,11 +5,15 @@ import com.internship.rblp.service.AdminService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum ToggleUserStatusHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static AdminService adminService;
+
+    private static final Logger logger = LoggerFactory.getLogger(ToggleUserStatusHandler.class);
 
     public static void init(AdminService service){
         adminService = service;
@@ -35,12 +39,14 @@ public enum ToggleUserStatusHandler implements Handler<RoutingContext> {
         adminService.toggleUserStatus(userId)
                 .subscribe(
                         result -> {
+                            logger.info("User status toggled successfully");
                             ctx.response()
                                     .setStatusCode(200)
                                     .putHeader("Content-Type","application/json")
                                     .end(result.encode());
                         },
                         err -> {
+                            logger.error("Error toggling user status: ", err);
                             int statusCode = err.getMessage().contains("not found")?404:500;
                             ctx.response()
                                     .setStatusCode(statusCode)

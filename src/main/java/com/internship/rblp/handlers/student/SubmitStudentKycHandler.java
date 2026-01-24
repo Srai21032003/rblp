@@ -8,7 +8,6 @@ import io.vertx.rxjava3.ext.web.FileUpload;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 
 import java.util.List;
-import java.util.Set;
 
 public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
     INSTANCE;

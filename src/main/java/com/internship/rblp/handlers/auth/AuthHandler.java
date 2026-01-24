@@ -2,9 +2,12 @@ package com.internship.rblp.handlers.auth;
 
 import com.internship.rblp.service.AuthService;
 import com.internship.rblp.models.enums.Role;
+import com.internship.rblp.util.JwtUtil;
 import io.vertx.core.Handler;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +37,22 @@ public enum AuthHandler implements Handler<RoutingContext> {
     }
 
     private void handleLogin(RoutingContext ctx) {
+
+        Cookie existingToken = ctx.request().getCookie("authToken");
+
+        if(existingToken != null){
+            try{
+                JwtUtil.validateToken(existingToken.getValue());
+                ctx.response()
+                        .setStatusCode(200)
+                        .putHeader("Content-Type","application/json")
+                        .end(new JsonObject().put("message","Already logged in").encode());
+                return;
+            } catch(Exception e){
+                ctx.response().removeCookie("authToken");
+            }
+        }
+
         JsonObject body = ctx.body().asJsonObject();
         if (body == null || !body.containsKey("email") || !body.containsKey("password")) {
             ctx.response().setStatusCode(400).end(new JsonObject().put("error", "Email and password required").encode());
@@ -44,7 +63,15 @@ public enum AuthHandler implements Handler<RoutingContext> {
                 .subscribe(
                         token -> {
                             logger.info("Login success:");
-                            ctx.json(new JsonObject().put("token", token));
+                            Cookie cookie = Cookie.cookie("authToken", token);
+                            cookie.setPath("/");
+                            cookie.setHttpOnly(true);
+                            cookie.setSecure(false);  // to be set to "true" in production
+                            cookie.setMaxAge(864000);
+                            ctx.response().addCookie(cookie);
+                            ctx.json(new JsonObject()
+                                    .put("message", "Login successful")
+                                    .put("token", token));
                         },
                         err -> {
                             int code = err.getMessage().contains("found") || err.getMessage().contains("credentials") ? 401 : 500;

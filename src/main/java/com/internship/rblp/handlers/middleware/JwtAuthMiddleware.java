@@ -3,6 +3,7 @@ package com.internship.rblp.handlers.middleware;
 import com.internship.rblp.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import io.vertx.core.Handler;
+import io.vertx.core.http.Cookie;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 import org.slf4j.Logger;
@@ -15,18 +16,8 @@ public enum JwtAuthMiddleware implements Handler<RoutingContext> {
 
     @Override
     public void handle(RoutingContext ctx){
-        String authHeader = ctx.request().getHeader("Authorization");
-
-        if(authHeader == null || !authHeader.startsWith("Bearer")){
-            ctx.response()
-                    .setStatusCode(401)
-                    .putHeader("Content-Type","application/json")
-                    .end(new JsonObject().put("error","Missing or invalid Authorization header").encode());
-            return;
-        }
-
-
-        String token = authHeader.substring(7);
+        Cookie cookie = ctx.request().getCookie("authToken");
+        String token = cookie.getValue();
 
         try{
             Claims claims = JwtUtil.validateToken(token);
