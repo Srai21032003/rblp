@@ -14,7 +14,8 @@ import org.slf4j.LoggerFactory;
 public enum AuthHandler implements Handler<RoutingContext> {
 
     LOGIN,
-    SIGNUP;
+    SIGNUP,
+    LOGOUT;
 
     private static final Logger logger = LoggerFactory.getLogger(AuthHandler.class);
     private static AuthService authService;
@@ -33,7 +34,21 @@ public enum AuthHandler implements Handler<RoutingContext> {
         switch (this) {
             case LOGIN -> handleLogin(ctx);
             case SIGNUP -> handleSignup(ctx);
+            case LOGOUT -> handleLogout(ctx);
         }
+    }
+
+    private void handleLogout(RoutingContext ctx) {
+        Cookie cookie = Cookie.cookie("authToken", "");
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        ctx.response().addCookie(cookie);
+        ctx.response()
+                .setStatusCode(200)
+                .putHeader("Content-Type", "application/json")
+                .end(new JsonObject().put("message", "Logged out successfully").encode());
     }
 
     private void handleLogin(RoutingContext ctx) {

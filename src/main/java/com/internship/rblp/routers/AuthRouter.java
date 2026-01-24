@@ -17,6 +17,7 @@ public enum AuthRouter {
         // routes
         router.post("/login").handler(AuthHandler.LOGIN);
         router.post("/signup").handler(AuthHandler.SIGNUP);
+        router.post("/logout").handler(AuthHandler.LOGOUT);
 
         return router;
     }
