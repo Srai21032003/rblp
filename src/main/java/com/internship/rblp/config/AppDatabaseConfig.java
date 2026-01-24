@@ -13,7 +13,7 @@ public class AppDatabaseConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(AppDatabaseConfig.class);
 
-    // initialize DB connection using application.properties
+    // initialize DB connection using .env
     public static void init(JsonObject config) {
         logger.info("Initializing Database Connection...");
         Dotenv dotenv = Dotenv.load();

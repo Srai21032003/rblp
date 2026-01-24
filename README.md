@@ -59,6 +59,7 @@ A reactive, role-based backend system built with **Vert.x**, **RxJava 3**, **Ebe
 | **JJWT** | 0.12.3 | JWT Token Management |
 | **BCrypt** | 0.4 | Password Hashing |
 | **Lombok** | 1.18.38 | Boilerplate Reduction |
+| **Dotenv Java** | 3.0.0 | Environment Variable Management |
 | **Gradle** | 9.2.0 | Build Tool |
 
 ---
@@ -114,7 +115,9 @@ rblp/
 │   │       ├── JwtUtil.java
 │   │       └── KycValidationUtil.java
 │   └── resources/
-│       └── application.properties         # Application configuration
+│       └── logback.xml                    # Logging configuration
+├── .env                                   # Environment variables (sensitive data)
+├── .gitignore                             # Git ignore file
 ├── build.gradle                           # Gradle build configuration
 ├── settings.gradle                        # Gradle settings
 └── README.md                              # This file
@@ -146,29 +149,34 @@ cd rblp
 CREATE DATABASE rblp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-### 3. Configure Database Connection
+### 3. Configure Environment Variables
 
-Edit `src/main/resources/application.properties`:
+Create a `.env` file in the project root directory:
 
-```properties
-# Server Configuration
-server.port=8080
-
+```env
 # Database Configuration
-datasource.username=root
-datasource.password=YOUR_PASSWORD
-datasource.url=jdbc:mysql://localhost:3306/rblp_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-datasource.driver=com.mysql.cj.jdbc.Driver
-
-# Ebean Configuration
-ebean.ddl.generate=true
-ebean.ddl.run=true
-ebean.default.datasource=db
+DB_USERNAME=root
+DB_PASSWORD=YOUR_PASSWORD
+DB_URL=jdbc:mysql://localhost:3306/rblp_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+DB_DRIVER=com.mysql.cj.jdbc.Driver
 
 # JWT Security
-jwt.secret=MySuperSecretKeyForInternshipProject2026_MustBeLongEnough!
-jwt.issuer=rblp-backend
-jwt.expiration=86400
+JWT_SECRET=MySuperSecretKeyForInternshipProject2026_MustBeLongEnough!
+JWT_ISSUER=rblp-backend
+JWT_EXPIRATION=86400
+
+# Server Configuration
+SERVER_PORT=8080
+
+# Ebean Configuration
+EBEAN_DDL_GENERATE=true
+EBEAN_DDL_RUN=true
+EBEAN_DEFAULT_DATASOURCE=db
+```
+
+**⚠️ Important:** Add `.env` to your `.gitignore` file to prevent committing sensitive data:
+```
+.env
 ```
 
 ### 4. Build the Project
@@ -181,19 +189,52 @@ jwt.expiration=86400
 
 ## ⚙️ Configuration
 
+### Environment Variables
+
+The application uses `.env` file for sensitive configuration:
+- All database credentials are stored in `.env`
+- JWT secrets are stored in `.env`
+- Never commit `.env` file to version control
+
 ### Database Auto-Generation
 
 The application uses Ebean's DDL generation:
-- `ebean.ddl.generate=true` - Generates SQL schema
-- `ebean.ddl.run=true` - Automatically creates tables on startup
+- `EBEAN_DDL_GENERATE=true` - Generates SQL schema
+- `EBEAN_DDL_RUN=true` - Automatically creates tables on startup
 
-**⚠️ Warning:** Set `ebean.ddl.run=false` in production!
+**⚠️ Warning:** Set `EBEAN_DDL_RUN=false` in production!
 
 ### JWT Configuration
 
 - **Secret Key**: Minimum 256 bits for HMAC-SHA256
 - **Expiration**: 86400 seconds (24 hours)
 - **Claims**: userId, role, email
+
+### Logging Configuration
+
+To reduce verbose SQL logging, create `src/main/resources/logback.xml`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Set Ebean loggers to WARN to hide SQL queries -->
+    <logger name="io.ebean.SQL" level="WARN"/>
+    <logger name="io.ebean.TXN" level="WARN"/>
+    <logger name="io.ebean.SUM" level="WARN"/>
+    
+    <logger name="com.internship.rblp" level="INFO"/>
+    
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>
+```
 
 ---
 
@@ -437,6 +478,8 @@ curl http://localhost:8080/health
 - **Role-Based Access Control**: Endpoint protection by role
 - **Input Validation**: Document format and size validation
 - **SQL Injection Prevention**: Parameterized queries via Ebean ORM
+- **Environment Variables**: Sensitive data stored in `.env` file (not committed to Git)
+- **Logging Security**: SQL query logging disabled in production
 
 ---
 
@@ -466,13 +509,19 @@ curl http://localhost:8080/health
 ```
 Error: Access denied for user 'root'@'localhost'
 ```
-**Solution**: Check MySQL credentials in `application.properties`
+**Solution**: Check MySQL credentials in `.env` file
+
+### Missing .env File
+```
+Error: DataSource user is not set
+```
+**Solution**: Create `.env` file in project root with all required variables
 
 ### Port Already in Use
 ```
 Error: Address already in use
 ```
-**Solution**: Change `server.port` in `application.properties` or kill process on port 8080
+**Solution**: Change `SERVER_PORT` in `.env` file or kill process on port 8080
 
 ### JWT Token Expired
 ```
