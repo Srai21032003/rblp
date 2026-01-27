@@ -1,6 +1,9 @@
 package com.internship.rblp.handlers.student;
 
+import com.internship.rblp.service.FileStorageService;
 import com.internship.rblp.service.KycService;
+import io.reactivex.rxjava3.annotations.NonNull;
+import io.reactivex.rxjava3.core.Observable;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -13,14 +16,16 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static KycService kycService;
+    private static FileStorageService fileStorageService;
 
-    public static void init(KycService service){
+    public static void init(KycService service, FileStorageService storageService) {
         kycService = service;
+        fileStorageService = storageService;
     }
-    @Override
-    public void handle(RoutingContext ctx){
 
-        if(kycService == null){
+    @Override
+    public void handle(RoutingContext ctx) {
+        if (kycService == null) {
             ctx.fail(500, new RuntimeException("KycService not initialized"));
             return;
         }
@@ -28,33 +33,75 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
         String userId = ctx.get("userId");
         List<FileUpload> uploads = ctx.fileUploads();
 
-        if(uploads.size() < 3){
+        if (uploads.size() < 3) {
             ctx.response().setStatusCode(400)
-                    .end(new JsonObject()
-                            .put("error","Please upload all 3 documents")
-                            .encode());
+                    .putHeader("Content-Type", "application/json")
+                    .end(new JsonObject().put("error", "Please upload all 3 documents (PAN, Aadhaar, Passport)").encode());
             return;
         }
 
-        String address = ctx.request().getFormAttribute("address");
-        String dob = ctx.request().getFormAttribute("dob");
+        Observable.fromIterable(uploads)
+                .flatMapSingle(file ->
+                        fileStorageService.saveFile(file, userId)
+                                .map(savedPath ->{
+                                    JsonObject doc = new JsonObject();
+                                    doc.put("savedPath", savedPath);
+                                    doc.put("originalFileName", file.fileName());
+                                    doc.put("formFieldName", file.name());
+                                    return doc;
+                                })
+                )
+                .toList()
+                .subscribe(
+                        processedFiles-> {
+                            try{
+                                JsonObject serviceData = buildServicePayload(ctx,processedFiles);
+
+                                kycService.submitKyc(userId, serviceData)
+                                        .subscribe(
+                                                kycId -> ctx.response().setStatusCode(200)
+                                                        .putHeader("Content-Type", "application/json")
+                                                        .end(new JsonObject()
+                                                                .put("message", "Student KYC submitted successfully")
+                                                                .put("kycId", kycId).encode()),
+                                                err -> {
+                                                    processedFiles.forEach(f -> ctx.vertx().fileSystem().delete(f.getString("savedPath")));
+
+                                                    int statusCode = err.getMessage().contains("already submitted") ? 409 : 500;
+                                                    ctx.response().setStatusCode(statusCode)
+                                                            .putHeader("Content-Type", "application/json")
+                                                            .end(new JsonObject().put("error", err.getMessage()).encode());
+                                                });
+                            } catch(Exception e){
+                                ctx.fail(400, e);
+                            }
+                        }, err->{
+                            ctx.fail(500, new RuntimeException("Failed to store docs"+ err.getMessage()));
+                        }
+                );
+    }
+
+    private JsonObject buildServicePayload(RoutingContext ctx, @NonNull List<JsonObject> processedFiles) {
 
         JsonArray docsArray = new JsonArray();
 
-        for (FileUpload f : uploads) {
+        for (JsonObject f: processedFiles) {
             JsonObject doc = new JsonObject();
-            doc.put("filePath", f.uploadedFileName());
-            doc.put("originalFileName",f.fileName());
 
-            if (f.name().equals("panFile")) {
+            doc.put("filePath", f.getString("savedPath"));
+            doc.put("originalFileName",f.getString("originalFileName"));
+
+            String fieldName = f.getString("formFieldName");
+
+            if ("panFile".equals(fieldName)) {
                 doc.put("docType", "PAN");
                 doc.put("documentNumber", ctx.request().getFormAttribute("panNumber"));
                 doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPan"));
-            } else if (f.name().equals("aadhaarFile")) {
+            } else if ("aadhaarFile".equals(fieldName)) {
                 doc.put("docType", "AADHAAR");
                 doc.put("documentNumber", ctx.request().getFormAttribute("aadhaarNumber"));
                 doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnAadhaar"));
-            } else if (f.name().equals("passportFile")) {
+            } else if ("passportFile".equals(fieldName)) {
                 doc.put("docType", "PASSPORT");
                 doc.put("documentNumber", ctx.request().getFormAttribute("passportNumber"));
                 doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPassport"));
@@ -62,29 +109,9 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
             docsArray.add(doc);
         }
 
-        JsonObject serviceData = new JsonObject()
-                .put("address", address)
-                .put("dob", dob)
+        return new JsonObject()
+                .put("address", ctx.request().getFormAttribute("address"))
+                .put("dob", ctx.request().getFormAttribute("dob"))
                 .put("documents", docsArray);
-
-        kycService.submitKyc(userId,serviceData)
-                .subscribe(
-                        kycId -> {
-                            ctx.response()
-                                    .setStatusCode(201)
-                                    .putHeader("Content-Type", "application/json")
-                                    .end(new JsonObject()
-                                            .put("message", "Student KYC submitted successfully")
-                                            .put("kycId", kycId).encode());
-                        },
-                        err -> {
-                            uploads.forEach(f -> ctx.vertx().fileSystem().delete(f.uploadedFileName()));
-
-                            int statusCode = err.getMessage().contains("already submitted") ? 409 : 500;
-                            ctx.response().setStatusCode(statusCode)
-                                    .putHeader("Content-Type", "application/json")
-                                    .end(new JsonObject().put("error", err.getMessage()).encode());
-                        }
-                );
     }
 }

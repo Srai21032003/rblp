@@ -1,11 +1,13 @@
 package com.internship.rblp.service;
 
+import com.internship.rblp.models.entities.KycAiAnalysis;
 import com.internship.rblp.models.entities.KycDetails;
 import com.internship.rblp.models.entities.KycDocument;
 import com.internship.rblp.models.entities.User;
 import com.internship.rblp.models.enums.DocType;
 import com.internship.rblp.models.enums.KycStatus;
 import com.internship.rblp.models.enums.ValidationStatus;
+import com.internship.rblp.repository.KycAiAnalysisRepository;
 import com.internship.rblp.repository.KycRepository;
 import com.internship.rblp.repository.UserRepository;
 import com.internship.rblp.util.KycValidationUtil;
@@ -25,14 +27,18 @@ public class KycService {
 
     private final KycRepository kycRepository;
     private final UserRepository userRepository;
+    private final AiKycServiceGemini aiService;
+    private final KycAiAnalysisRepository kycAiRepo;
     private final Vertx vertx;
 
     private static final Set<String> REQUIRED_DOCS = Set.of("PAN", "AADHAAR", "PASSPORT");
 
-    public KycService(KycRepository kycRepository, UserRepository userRepository,Vertx vertx) {
+    public KycService(KycRepository kycRepository, UserRepository userRepository, Vertx vertx, AiKycServiceGemini aiService, KycAiAnalysisRepository kycAiAnalysisRepository) {
         this.kycRepository = kycRepository;
         this.userRepository = userRepository;
         this.vertx = Vertx.vertx();
+        this.aiService = aiService;
+        this.kycAiRepo = kycAiAnalysisRepository;
     }
 
     public Single<String> submitKyc(String userIdStr, JsonObject data) {
@@ -47,6 +53,7 @@ public class KycService {
             }
 
             checkRequiredDocsPresent(docsArray);
+            List<KycDocument> docsForAi = new ArrayList<>();
 
             try (Transaction txn = DB.beginTransaction()) {
 
@@ -61,8 +68,8 @@ public class KycService {
                     throw new RuntimeException("KYC is already approved.");
                 }
 
-                if (data.containsKey("address")) kycDetails.setAddress(data.getString("address"));
-                if (data.containsKey("dob")) kycDetails.setDob(LocalDate.parse(data.getString("dob")));
+//                if (data.containsKey("address")) kycDetails.setAddress(data.getString("address"));
+//                if (data.containsKey("dob")) kycDetails.setDob(LocalDate.parse(data.getString("dob")));
 
                 kycDetails.setStatus(KycStatus.SUBMITTED);
                 kycDetails.setUpdatedAt(java.time.Instant.now());
@@ -79,7 +86,9 @@ public class KycService {
 
                     doc.setDocType(DocType.valueOf(docJson.getString("docType")));
                     doc.setDocumentNumber(docJson.getString("documentNumber"));
-                    doc.setFilePath(docJson.getString("filePath"));
+
+                    String absPath = docJson.getString("filePath");
+                    doc.setFilePath(absPath);
 
                     String originalName = docJson.getString("originalFileName", "");
                     String nameOnDoc = docJson.getString("nameOnDoc", "");
@@ -87,11 +96,58 @@ public class KycService {
                     validateDocumentInternal(doc, user.getFullName(), nameOnDoc, originalName);
 
                     kycRepository.saveDocument(doc);
+                    docsForAi.add(doc);
                 }
 
                 txn.commit();
+
+                aiService.triggerAiReview(kycDetails, docsForAi);
+
                 return kycDetails.getId().toString();
             }
+        }).subscribeOn(Schedulers.io());
+    }
+
+    public Single<JsonObject> getKycWithAiDetails(String kycIdStr) {
+        return Single.fromCallable(() -> {
+            UUID kycId = UUID.fromString(kycIdStr);
+            KycDetails kyc = kycRepository.findById(kycId)
+                    .orElseThrow(() -> new RuntimeException("Kyc Not Found"));
+
+            Optional<KycAiAnalysis> aiResult = kycAiRepo.findByKycId(kycId);
+
+            JsonObject response = new JsonObject()
+                    .put("kycId", kyc.getId().toString())
+                    .put("user", kyc.getUser().getFullName())
+                    .put("status", kyc.getStatus());
+
+            if (aiResult.isPresent()) {
+                KycAiAnalysis ai = aiResult.get();
+                response.put("aiReview", new JsonObject()
+                        .put("status", ai.getAiStatus())
+                        .put("confidenceScore", ai.getOverallConfidence())
+                        .put("recommendation", ai.getRecommendation())
+                        .put("riskFlags", new JsonArray(ai.getRiskFlags()))
+                );
+            } else {
+                response.put("aiReview", new JsonObject().put("status", "PENDING_OR_NOT_AVAILABLE"));
+            }
+
+            Optional<KycDocument> docs = kycRepository.findDocumentById(kyc.getId());
+            JsonArray docArray = new JsonArray();
+            for (KycDocument d : docs.stream().toList()) {
+                docArray.add(new JsonObject()
+                        .put("docId", d.getId().toString())
+                        .put("docType", d.getDocType())
+                        .put("docNumber", d.getDocumentNumber())
+                        .put("filePath", d.getFilePath())
+                        .put("validationStatus", d.getValidationStatus())
+                        .put("validationMsg", d.getValidationMessage())
+                );
+            }
+            response.put("documents", docArray);
+
+            return response;
         }).subscribeOn(Schedulers.io());
     }
 
@@ -115,6 +171,7 @@ public class KycService {
             errors.add("Invalid " + doc.getDocType() + " format.");
         }
 
+        System.out.println(nameOnDoc+"+"+profileName);
         if (!nameOnDoc.isEmpty() && !KycValidationUtil.isNameMatch(nameOnDoc, profileName)) {
             errors.add("Name on document does not match profile name.");
         }

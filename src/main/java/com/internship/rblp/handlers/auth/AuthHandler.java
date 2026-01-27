@@ -1,13 +1,11 @@
 package com.internship.rblp.handlers.auth;
 
 import com.internship.rblp.service.AuthService;
-import com.internship.rblp.models.enums.Role;
 import com.internship.rblp.util.JwtUtil;
 import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
-import org.mindrot.jbcrypt.BCrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,7 +104,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
         authService.register(body)
                 .subscribe(
                         token -> {
-                            logger.info("Signup success: {}", body.getString("email"));
+                            logger.info("Signup success");
                             ctx.response()
                                     .setStatusCode(201)
                                     .end(new JsonObject()

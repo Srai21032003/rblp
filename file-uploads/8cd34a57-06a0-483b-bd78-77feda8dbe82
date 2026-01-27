@@ -1,4 +1,0 @@
-fullName, email, mobileNumber, role, initialPassword
-Rahul Sharma, rahul.sharma@test.com, 9876543210, STUDENT, Temp@123
-Anita Verma, anita.verma@test.com, 9123456789, TEACHER, Temp@123
-Invalid User, , 0000000000, STUDENT, Pass123
