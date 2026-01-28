@@ -3,6 +3,7 @@ package com.internship.rblp.service;
 import com.internship.rblp.models.entities.KycAiAnalysis;
 import com.internship.rblp.models.entities.KycDetails;
 import com.internship.rblp.models.entities.KycDocument;
+import com.internship.rblp.models.enums.KycStatus;
 import com.internship.rblp.repository.KycAiAnalysisRepository;
 import com.internship.rblp.repository.KycRepository;
 import io.ebean.DB;
@@ -174,7 +175,8 @@ public class AiKycServiceGemini {
             if (confidenceScores != null) {
                 confidenceScores.forEach(f -> confidenceList.add(f.toString()));
             }
-            analysis.setOverallConfidence(resultJson.getInteger("overallConfidence", 0));
+            Integer overallConfidence = resultJson.getInteger("overallConfidence", 0);
+            analysis.setOverallConfidence(overallConfidence);
 
 //            analysis.setConfidenceScore(resultJson.getInteger("confidenceScore", 0));
             analysis.setRecommendation(resultJson.getString("aiRecommendation", "MANUAL_REVIEW"));
@@ -183,6 +185,11 @@ public class AiKycServiceGemini {
             analysis.setRawResponse(resultJson.getMap());
             kyc.setAddress(resultJson.getString("extractedAddress", ""));
             kyc.setDob(LocalDate.parse(resultJson.getString("extractedDob", "")));
+
+            if(overallConfidence < 50){
+                kyc.setStatus(KycStatus.REJECTED);
+                kyc.setAdminRemarks("Auto Rejected due to low confidence score: " + overallConfidence);
+            }
 
 
             JsonArray flags = resultJson.getJsonArray("riskFlags");
@@ -197,6 +204,7 @@ public class AiKycServiceGemini {
             } else {
                 analysis.setAiStatus("AI_FLAGGED");
             }
+            kyc.setStatus(KycStatus.PENDING);
             kycRepository.save(kyc);
 
             aiRepository.save(analysis);

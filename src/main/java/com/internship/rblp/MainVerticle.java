@@ -15,10 +15,7 @@ import com.internship.rblp.handlers.teacher.SubmitTeacherKycHandler;
 import com.internship.rblp.handlers.student.UpdateStudentProfileHandler;
 import com.internship.rblp.handlers.teacher.GetTeacherKycStatusHandler;
 import com.internship.rblp.handlers.teacher.UpdateTeacherProfileHandler;
-import com.internship.rblp.repository.BulkUploadRepository;
-import com.internship.rblp.repository.KycAiAnalysisRepository;
-import com.internship.rblp.repository.KycRepository;
-import com.internship.rblp.repository.UserRepository;
+import com.internship.rblp.repository.*;
 import com.internship.rblp.routers.*;
 import com.internship.rblp.handlers.auth.AuthHandler;
 import com.internship.rblp.routers.AuthRouter;
@@ -59,6 +56,7 @@ public class MainVerticle extends AbstractVerticle {
         UserRepository userRepository = new UserRepository();
         KycRepository kycRepository = new KycRepository();
         KycAiAnalysisRepository aiRepo = new KycAiAnalysisRepository();
+        AuditLogsRepository auditRepo = new AuditLogsRepository();
 
         BulkUploadRepository bulkRepo = new BulkUploadRepository();
 
@@ -66,8 +64,9 @@ public class MainVerticle extends AbstractVerticle {
         AiKycServiceGemini aiService = new AiKycServiceGemini(vertx,aiRepo, kycRepository);
 
 
+        AuditLogsService auditService = new AuditLogsService(auditRepo);
         AuthService authService = new AuthService(userRepository);
-        AuthHandler.init(authService);
+        AuthHandler.init(authService,auditService);
 
         AdminService adminService = new AdminService(userRepository);
         UpdateAdminProfileHandler.init(adminService);

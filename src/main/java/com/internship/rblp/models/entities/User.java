@@ -51,6 +51,9 @@ public class User extends Model{
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private KycDetails kycDetails;
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    private AuditLogs auditLogs;
+
     @SoftDelete
     private boolean deleted;
 

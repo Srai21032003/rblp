@@ -1,5 +1,6 @@
 package com.internship.rblp.handlers.teacher;
 
+import com.internship.rblp.models.enums.DocType;
 import com.internship.rblp.service.FileStorageService;
 import com.internship.rblp.service.KycService;
 import io.reactivex.rxjava3.annotations.NonNull;
@@ -99,15 +100,15 @@ public enum SubmitTeacherKycHandler implements Handler<RoutingContext> {
             String fieldName = f.getString("formFieldName");
 
             if ("panFile".equals(fieldName)) {
-                doc.put("docType", "PAN");
+                doc.put("docType", DocType.PAN);
                 doc.put("documentNumber", ctx.request().getFormAttribute("panNumber"));
                 doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPan"));
             } else if ("aadhaarFile".equals(fieldName)) {
-                doc.put("docType", "AADHAAR");
+                doc.put("docType", DocType.AADHAAR);
                 doc.put("documentNumber", ctx.request().getFormAttribute("aadhaarNumber"));
                 doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnAadhaar"));
             } else if ("passportFile".equals(fieldName)) {
-                doc.put("docType", "PASSPORT");
+                doc.put("docType", DocType.PASSPORT);
                 doc.put("documentNumber", ctx.request().getFormAttribute("passportNumber"));
                 doc.put("nameOnDoc", ctx.request().getFormAttribute("nameOnPassport"));
             }

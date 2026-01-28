@@ -30,6 +30,11 @@ public class KycValidationUtil {
                 profileName.toLowerCase().contains(nameOnDoc.toLowerCase()) ||
                 nameOnDoc.toLowerCase().contains(profileName.toLowerCase());
     }
+    public static boolean isNumberMatch(String docNumber, String extractedNumber)
+    {
+        if (docNumber == null || extractedNumber == null) return false;
+        return docNumber.equals(extractedNumber);
+    }
 
     public static boolean isValidFileType(String filePath) {
         if (filePath == null) return false;
