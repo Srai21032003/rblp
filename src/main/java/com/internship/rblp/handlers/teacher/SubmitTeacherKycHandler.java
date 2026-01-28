@@ -1,6 +1,7 @@
 package com.internship.rblp.handlers.teacher;
 
 import com.internship.rblp.models.enums.DocType;
+import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.FileStorageService;
 import com.internship.rblp.service.KycService;
 import io.reactivex.rxjava3.annotations.NonNull;
@@ -13,16 +14,18 @@ import io.vertx.rxjava3.ext.web.RoutingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 
 public enum SubmitTeacherKycHandler implements Handler<RoutingContext> {
     INSTANCE;
 
+    private static AuditLogsService auditService;
+    private static final Logger logger = LoggerFactory.getLogger(SubmitTeacherKycHandler.class);
     private static KycService kycService;
     private static FileStorageService fileStorageService;
-    private static final Logger logger = LoggerFactory.getLogger(SubmitTeacherKycHandler.class);
 
-    public static void init(KycService service, FileStorageService storageService) {
+    public static void init(KycService service, FileStorageService storageService, AuditLogsService audService) {
         kycService = service;
         fileStorageService = storageService;
     }
@@ -61,14 +64,32 @@ public enum SubmitTeacherKycHandler implements Handler<RoutingContext> {
                             try{
                                 logger.info("Files saved: {}", processedFiles);
                                 JsonObject serviceData = buildServicePayload(ctx,processedFiles);
+                                String saveFileSuccess = "SAVED FILE TO LOCAL AT "+ auditService.getCurrentTimestamp();
+                                auditService.addAuditLogEntry(ctx, saveFileSuccess)
+                                        .subscribe(
+                                                ()-> logger.info("Audit log entry added successfully"),
+                                                err -> {
+                                                    logger.error("Failed to add audit log entry for submitKyc", err);
+                                                }
+                                        );
 
                                 kycService.submitKyc(userId, serviceData)
                                         .subscribe(
-                                                kycId -> ctx.response().setStatusCode(200)
-                                                        .putHeader("Content-Type", "application/json")
-                                                        .end(new JsonObject()
-                                                                .put("message", "Teacher KYC submitted successfully")
-                                                                .put("kycId", kycId).encode()),
+                                                kycId -> {
+                                                    ctx.response().setStatusCode(200)
+                                                            .putHeader("Content-Type", "application/json")
+                                                            .end(new JsonObject()
+                                                                    .put("message", "Teacher KYC submitted successfully")
+                                                                    .put("kycId", kycId).encode());
+                                                    String submitKycSuccess = "SUBMITTED KYC AT "+ auditService.getCurrentTimestamp();
+                                                    auditService.addAuditLogEntry(ctx, submitKycSuccess)
+                                                            .subscribe(
+                                                                    ()-> logger.info("Audit log entry added successfully"),
+                                                                    err -> {
+                                                                        logger.error("Failed to add audit log entry for submitKyc", err);
+                                                                    }
+                                                            );
+                                                },
                                                 err -> {
                                                     // Delete uploaded files
                                                     processedFiles.forEach(f -> ctx.vertx().fileSystem().delete(f.getString("savedPath")));

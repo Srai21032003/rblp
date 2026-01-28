@@ -44,6 +44,8 @@ public enum AuthHandler implements Handler<RoutingContext> {
     }
 
     private void handleLogout(RoutingContext ctx) {
+        String userId = JwtUtil.validateToken(ctx.request().getCookie("authToken").getValue()).getSubject();
+        ctx.put("userId", userId);
         Cookie cookie = Cookie.cookie("authToken", "");
         cookie.setPath("/");
         cookie.setMaxAge(0);
@@ -54,13 +56,13 @@ public enum AuthHandler implements Handler<RoutingContext> {
                 .setStatusCode(200)
                 .putHeader("Content-Type", "application/json")
                 .end(new JsonObject().put("message", "Logged out successfully").encode());
-        String logoutSuccess = "LOGGED OUT AT "+ Instant.now().toString();
+
+        String logoutSuccess = "LOGGED OUT AT "+ auditService.getCurrentTimestamp();
         auditService.addAuditLogEntry(ctx, logoutSuccess)
                 .subscribe(
                         ()-> logger.info("Audit log entry added successfully"),
                         err -> {
-                            logger.error("Failed to add audit log entry", err);
-                            err.printStackTrace();
+                            logger.error("Failed to add audit log entry in logout", err);
                         }
                 );
     }
@@ -102,13 +104,12 @@ public enum AuthHandler implements Handler<RoutingContext> {
                             cookie.setSecure(false);  // to be set to "true" in production
                             cookie.setMaxAge(864000);
                             ctx.response().addCookie(cookie);
-                            String loginSuccess = "LOGGED IN AT "+ Instant.now().toString();
+                            String loginSuccess = "LOGGED IN AT "+ auditService.getCurrentTimestamp();
                             auditService.addAuditLogEntry(ctx, loginSuccess)
                                             .subscribe(
                                                     ()-> logger.info("Audit log entry added successfully"),
                                                     err -> {
-                                                        logger.error("Failed to add audit log entry", err);
-                                                        err.printStackTrace();
+                                                        logger.error("Failed to add audit log entry for login", err);
                                                     }
                                             );
                             ctx.json(new JsonObject()
@@ -134,13 +135,14 @@ public enum AuthHandler implements Handler<RoutingContext> {
                 .subscribe(
                         token -> {
                             logger.info("Signup success");
-                            String signupSuccess = "SIGNED UP"+ Instant.now().toString();
+                            String userId = JwtUtil.validateToken(token).getSubject();
+                            ctx.put("userId", userId);
+                            String signupSuccess = "SIGNED UP AT "+ auditService.getCurrentTimestamp();
                             auditService.addAuditLogEntry(ctx, signupSuccess)
                                     .subscribe(
                                             ()-> logger.info("Audit log entry added successfully"),
                                             err -> {
-                                                logger.error("Failed to add audit log entry", err);
-                                                err.printStackTrace();
+                                                logger.error("Failed to add audit log entry for signup", err);
                                             }
                                     );
                             ctx.response()

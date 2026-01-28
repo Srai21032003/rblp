@@ -8,6 +8,8 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.UUID;
 
@@ -21,7 +23,7 @@ public class AuditLogsService {
         return Completable.fromAction(() -> {
             String userId = ctx.get("userId");
             UUID userUuid = UUID.fromString(userId);
-            AuditLogs auditLogs = auditRepo.findById(userUuid)
+            AuditLogs auditLogs = auditRepo.findByUserId(userUuid)
                     .orElseGet(() ->{
                         AuditLogs newLog = new AuditLogs();
                         User user = new User();
@@ -33,5 +35,11 @@ public class AuditLogsService {
             auditLogs.getLogs().add(new AuditLogs.AuditLogEntry(Instant.now(), actionString));
             auditRepo.save(auditLogs);
         }).subscribeOn(Schedulers.io());
+    }
+
+    public String getCurrentTimestamp() {
+        return Instant.now()
+                .atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy"));
     }
 }

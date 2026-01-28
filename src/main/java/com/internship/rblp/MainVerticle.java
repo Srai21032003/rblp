@@ -64,9 +64,9 @@ public class MainVerticle extends AbstractVerticle {
         AiKycServiceGemini aiService = new AiKycServiceGemini(vertx,aiRepo, kycRepository);
 
 
-        AuditLogsService auditService = new AuditLogsService(auditRepo);
+        AuditLogsService audService = new AuditLogsService(auditRepo);
         AuthService authService = new AuthService(userRepository);
-        AuthHandler.init(authService,auditService);
+        AuthHandler.init(authService,audService);
 
         AdminService adminService = new AdminService(userRepository);
         UpdateAdminProfileHandler.init(adminService);
@@ -82,14 +82,14 @@ public class MainVerticle extends AbstractVerticle {
         RejectKycHandler.init(kycService);
 
         StudentService studentService = new StudentService(userRepository);
-        UpdateStudentProfileHandler.init(studentService);
-        SubmitStudentKycHandler.init(kycService,fileStorageService);
-        GetStudentKycStatusHandler.init(kycService);
+        UpdateStudentProfileHandler.init(studentService, audService);
+        SubmitStudentKycHandler.init(kycService,fileStorageService, audService);
+        GetStudentKycStatusHandler.init(kycService, audService);
 
         TeacherService teacherService = new TeacherService(userRepository);
-        UpdateTeacherProfileHandler.init(teacherService);
-        SubmitTeacherKycHandler.init(kycService,fileStorageService);
-        GetTeacherKycStatusHandler.init(kycService);
+        UpdateTeacherProfileHandler.init(teacherService, audService);
+        SubmitTeacherKycHandler.init(kycService,fileStorageService, audService);
+        GetTeacherKycStatusHandler.init(kycService, audService);
 
         BulkUploadService bulkService = new BulkUploadService(bulkRepo,adminService,vertx);
 

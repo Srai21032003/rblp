@@ -1,16 +1,24 @@
 package com.internship.rblp.handlers.teacher;
 
+import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
 
 public enum GetTeacherKycStatusHandler implements Handler<RoutingContext> {
     INSTANCE;
 
+    private static AuditLogsService auditService;
+    private static Logger logger = LoggerFactory.getLogger(GetTeacherKycStatusHandler.class);
     private static KycService kycService;
-    public static void init(KycService service){
+    public static void init(KycService service, AuditLogsService audService){
         kycService = service;
+        auditService = audService;
     }
 
     @Override
@@ -34,6 +42,14 @@ public enum GetTeacherKycStatusHandler implements Handler<RoutingContext> {
                                     .setStatusCode(201)
                                     .putHeader("Content-Type", "application/json")
                                     .end(statusJson.encode());
+                            String getKycStatusSuccess = "FETCHED KYC STATUS AT "+ auditService.getCurrentTimestamp();
+                            auditService.addAuditLogEntry(ctx, getKycStatusSuccess)
+                                    .subscribe(
+                                            ()-> logger.info("Audit log entry added successfully"),
+                                            err -> {
+                                                logger.error("Failed to add audit log entry for getKycStatus", err);
+                                            }
+                                    );
                         },
                         err -> {
                             int statusCode = 500;

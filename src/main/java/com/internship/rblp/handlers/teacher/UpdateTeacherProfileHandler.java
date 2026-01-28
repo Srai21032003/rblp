@@ -1,18 +1,25 @@
 package com.internship.rblp.handlers.teacher;
 
+import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.TeacherService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public enum UpdateTeacherProfileHandler implements Handler<RoutingContext> {
 
     INSTANCE;
 
+    private static final Logger logger = LoggerFactory.getLogger(UpdateTeacherProfileHandler.class);
     private static TeacherService teacherService;
+    private static AuditLogsService auditService;
 
-    public static void init(TeacherService service) {
+    public static void init(TeacherService service, AuditLogsService audService) {
+
         teacherService = service;
+        auditService = audService;
     }
 
     @Override
@@ -41,6 +48,14 @@ public enum UpdateTeacherProfileHandler implements Handler<RoutingContext> {
                                             .put("message", "Teacher profile updated")
                                             .put("data", updatedJson)
                                             .encode()
+                                    );
+                            String updateProfileSuccess = "UPDATED PROFILE AT "+ auditService.getCurrentTimestamp();
+                            auditService.addAuditLogEntry(ctx, updateProfileSuccess)
+                                    .subscribe(
+                                            ()-> logger.info("Audit log entry added successfully"),
+                                            err -> {
+                                                logger.error("Failed to add audit log entry for updateProfile", err);
+                                            }
                                     );
                         },
                         err -> {

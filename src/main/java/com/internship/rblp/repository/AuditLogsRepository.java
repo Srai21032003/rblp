@@ -17,4 +17,12 @@ public class AuditLogsRepository {
         auditLogs.save();
     }
 
+    public Optional<AuditLogs> findByUserId(UUID userId) {
+        return DB.find(AuditLogs.class)
+                .where()
+                .eq("user.userId", userId)
+                .findOneOrEmpty();
+    }
+
+
 }
