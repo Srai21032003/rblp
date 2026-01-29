@@ -72,7 +72,7 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
                                                 }
                                         );
 
-                                kycService.submitKyc(userId, serviceData)
+                                kycService.submitKyc(userId, serviceData, ctx)
                                         .subscribe(
                                                 kycId -> {
                                                     ctx.response().setStatusCode(200)

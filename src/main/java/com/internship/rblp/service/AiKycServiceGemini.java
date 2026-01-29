@@ -15,6 +15,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClientOptions;
 import io.vertx.rxjava3.core.Vertx;
+import io.vertx.rxjava3.ext.web.RoutingContext;
 import io.vertx.rxjava3.ext.web.client.WebClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,7 @@ import java.util.regex.Pattern;
 public class AiKycServiceGemini {
 
     private static final Logger logger = LoggerFactory.getLogger(AiKycServiceGemini.class);
+    private static AuditLogsService auditService;
     private final Vertx vertx;
     private final KycAiAnalysisRepository aiRepository;
     private final KycRepository kycRepository;
@@ -39,10 +41,11 @@ public class AiKycServiceGemini {
 
     private static final String API_KEY = Dotenv.load().get("GEMINI_API_KEY");
 
-    public AiKycServiceGemini(Vertx vertx, KycAiAnalysisRepository aiRepository, KycRepository kycRepository) {
+    public AiKycServiceGemini(Vertx vertx, KycAiAnalysisRepository aiRepository, KycRepository kycRepository, AuditLogsService audService) {
         this.vertx = vertx;
         this.aiRepository = aiRepository;
         this.kycRepository = kycRepository;
+        auditService = audService;
 
         WebClientOptions options = new WebClientOptions()
                 .setUserAgent("RBLP-KYC-System/1.0")
@@ -51,9 +54,17 @@ public class AiKycServiceGemini {
         this.webClient = WebClient.create(vertx, options);
     }
 
-    public void triggerAiReview(KycDetails kycDetails, List<KycDocument> documents) {
+    public void triggerAiReview(KycDetails kycDetails, List<KycDocument> documents, RoutingContext ctx) {
         Completable.fromAction(() -> {
             logger.info("Starting ai review for kyc: {}", kycDetails.getId());
+            String triggerAiReviewSuccess = "AI KYC REVIEW TRIGGERED AT "+ auditService.getCurrentTimestamp();
+            auditService.addAuditLogEntry(ctx, triggerAiReviewSuccess)
+                    .subscribe(
+                            ()-> logger.info("Audit log entry added successfully"),
+                            err -> {
+                                logger.error("Failed to add audit log entry for submitKyc", err);
+                            }
+                    );
 
             JsonObject payload = buildGeminiPayload(kycDetails, documents);
             String finalUrl = BASE_URL + "?key=" + API_KEY;
@@ -65,7 +76,7 @@ public class AiKycServiceGemini {
                             response -> {
                                 if (response.statusCode() == 200) {
                                     JsonObject body = response.bodyAsJsonObject();
-                                    parseAndSaveGeminiResult(kycDetails, body);
+                                    parseAndSaveGeminiResult(kycDetails, body, ctx);
                                 } else {
                                     logger.error("Google AI API Failed: {} - {}", response.statusCode(), response.bodyAsString());
                                     saveFailure(kycDetails, "API Error: " + response.statusCode());
@@ -142,7 +153,7 @@ public class AiKycServiceGemini {
                 );
     }
 
-    private void parseAndSaveGeminiResult(KycDetails kyc, JsonObject aiResponse) {
+    private void parseAndSaveGeminiResult(KycDetails kyc, JsonObject aiResponse, RoutingContext ctx) {
         try(Transaction txn = DB.beginTransaction()) {
             JsonArray candidates = aiResponse.getJsonArray("candidates");
             if (candidates == null || candidates.isEmpty()) {
@@ -210,6 +221,14 @@ public class AiKycServiceGemini {
             aiRepository.save(analysis);
             txn.commit();
             logger.info("AI Analysis Saved for KYC: {}", kyc.getId());
+            String aiKycReviewSaveSuccess = "AI KYC REVIEW SAVED SUCCESSFULLY AT "+ auditService.getCurrentTimestamp();
+            auditService.addAuditLogEntry(ctx, aiKycReviewSaveSuccess)
+                    .subscribe(
+                            ()-> logger.info("Audit log entry added successfully"),
+                            err -> {
+                                logger.error("Failed to add audit log entry for submitKyc", err);
+                            }
+                    );
 
         } catch (Exception e) {
             logger.error("Failed to parse AI response: {}", aiResponse.encode(), e);

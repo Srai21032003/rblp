@@ -60,11 +60,11 @@ public class MainVerticle extends AbstractVerticle {
 
         BulkUploadRepository bulkRepo = new BulkUploadRepository();
 
-        FileStorageService fileStorageService = new FileStorageService(vertx);
-        AiKycServiceGemini aiService = new AiKycServiceGemini(vertx,aiRepo, kycRepository);
-
-
         AuditLogsService audService = new AuditLogsService(auditRepo);
+        FileStorageService fileStorageService = new FileStorageService(vertx);
+        AiKycServiceGemini aiService = new AiKycServiceGemini(vertx,aiRepo, kycRepository, audService);
+
+
         AuthService authService = new AuthService(userRepository);
         AuthHandler.init(authService,audService);
 

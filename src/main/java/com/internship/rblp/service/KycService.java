@@ -19,6 +19,7 @@ import io.reactivex.rxjava3.schedulers.Schedulers;
 import io.vertx.core.json.JsonArray;
 import io.vertx.rxjava3.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.rxjava3.ext.web.RoutingContext;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -41,7 +42,7 @@ public class KycService {
         this.kycAiRepo = kycAiAnalysisRepository;
     }
 
-    public Single<String> submitKyc(String userIdStr, JsonObject data) {
+    public Single<String> submitKyc(String userIdStr, JsonObject data, RoutingContext ctx) {
         return Single.fromCallable(() -> {
             UUID userId = UUID.fromString(userIdStr);
             User user = userRepository.findById(userId)
@@ -101,7 +102,7 @@ public class KycService {
 
                 txn.commit();
 
-                aiService.triggerAiReview(kycDetails, docsForAi);
+                aiService.triggerAiReview(kycDetails, docsForAi, ctx);
 
                 return kycDetails.getId().toString();
             }
