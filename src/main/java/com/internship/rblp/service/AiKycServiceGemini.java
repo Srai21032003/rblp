@@ -3,6 +3,7 @@ package com.internship.rblp.service;
 import com.internship.rblp.models.entities.KycAiAnalysis;
 import com.internship.rblp.models.entities.KycDetails;
 import com.internship.rblp.models.entities.KycDocument;
+import com.internship.rblp.models.enums.AuditAction;
 import com.internship.rblp.models.enums.KycStatus;
 import com.internship.rblp.repository.KycAiAnalysisRepository;
 import com.internship.rblp.repository.KycRepository;
@@ -57,14 +58,6 @@ public class AiKycServiceGemini {
     public void triggerAiReview(KycDetails kycDetails, List<KycDocument> documents, RoutingContext ctx) {
         Completable.fromAction(() -> {
             logger.info("Starting ai review for kyc: {}", kycDetails.getId());
-            String triggerAiReviewSuccess = "AI KYC REVIEW TRIGGERED AT "+ auditService.getCurrentTimestamp();
-            auditService.addAuditLogEntry(ctx, triggerAiReviewSuccess)
-                    .subscribe(
-                            ()-> logger.info("Audit log entry added successfully"),
-                            err -> {
-                                logger.error("Failed to add audit log entry for submitKyc", err);
-                            }
-                    );
 
             JsonObject payload = buildGeminiPayload(kycDetails, documents);
             String finalUrl = BASE_URL + "?key=" + API_KEY;
@@ -166,7 +159,7 @@ public class AiKycServiceGemini {
                     .getJsonObject(0)
                     .getString("text");
 
-            logger.info("Raw AI Response: {}", contentText); // Debugging
+//            logger.info("Raw AI Response: {}", contentText); // Debugging
 
             String jsonString = contentText;
             Pattern pattern = Pattern.compile("\\{.*}", Pattern.DOTALL);
@@ -221,14 +214,6 @@ public class AiKycServiceGemini {
             aiRepository.save(analysis);
             txn.commit();
             logger.info("AI Analysis Saved for KYC: {}", kyc.getId());
-            String aiKycReviewSaveSuccess = "AI KYC REVIEW SAVED SUCCESSFULLY AT "+ auditService.getCurrentTimestamp();
-            auditService.addAuditLogEntry(ctx, aiKycReviewSaveSuccess)
-                    .subscribe(
-                            ()-> logger.info("Audit log entry added successfully"),
-                            err -> {
-                                logger.error("Failed to add audit log entry for submitKyc", err);
-                            }
-                    );
 
         } catch (Exception e) {
             logger.error("Failed to parse AI response: {}", aiResponse.encode(), e);

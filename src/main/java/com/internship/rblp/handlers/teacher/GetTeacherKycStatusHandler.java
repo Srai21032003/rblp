@@ -1,5 +1,6 @@
 package com.internship.rblp.handlers.teacher;
 
+import com.internship.rblp.models.enums.AuditAction;
 import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;
@@ -42,21 +43,14 @@ public enum GetTeacherKycStatusHandler implements Handler<RoutingContext> {
                                     .setStatusCode(201)
                                     .putHeader("Content-Type", "application/json")
                                     .end(statusJson.encode());
-                            String getKycStatusSuccess = "FETCHED KYC STATUS AT "+ auditService.getCurrentTimestamp();
-                            auditService.addAuditLogEntry(ctx, getKycStatusSuccess)
-                                    .subscribe(
-                                            ()-> logger.info("Audit log entry added successfully"),
-                                            err -> {
-                                                logger.error("Failed to add audit log entry for getKycStatus", err);
-                                            }
-                                    );
+                            auditService.logSuccess(ctx, AuditAction.FETCH_KYC_STATUS).subscribe();
                         },
                         err -> {
                             int statusCode = 500;
                             if(err.getMessage().contains("not found")){
                                 statusCode = 404;
                             }
-
+                            auditService.logFailure(ctx, AuditAction.FETCH_KYC_STATUS,err.getMessage()).subscribe();
                             ctx.response()
                                     .setStatusCode(statusCode)
                                     .putHeader("Content-Type", "application/json")

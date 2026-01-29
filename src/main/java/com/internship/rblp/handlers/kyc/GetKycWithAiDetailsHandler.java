@@ -5,7 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
 
-public enum GetKycDetailHandler implements Handler<RoutingContext> {
+public enum GetKycWithAiDetailsHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static KycService kycService;
@@ -27,7 +27,7 @@ public enum GetKycDetailHandler implements Handler<RoutingContext> {
             ctx.response().setStatusCode(400).end(new JsonObject().put("error", "KYS Id is required").encode());
         }
 
-        kycService.getKycDetail(kycIdStr)
+        kycService.getKycWithAiDetails(kycIdStr)
                 .subscribe(
                         result ->{
                             ctx.response()

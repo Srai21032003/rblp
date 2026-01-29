@@ -1,5 +1,6 @@
 package com.internship.rblp.handlers.student;
 
+import com.internship.rblp.models.enums.AuditAction;
 import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.StudentService;
 import io.vertx.core.Handler;
@@ -54,17 +55,11 @@ public enum UpdateStudentProfileHandler implements Handler<RoutingContext> {
                                             .put("data", updatedJson)
                                             .encode()
                                     );
-                            String updateProfileSuccess = "UPDATED PROFILE AT "+ auditService.getCurrentTimestamp();
-                            auditService.addAuditLogEntry(ctx, updateProfileSuccess)
-                                    .subscribe(
-                                            ()-> logger.info("Audit log entry added successfully"),
-                                            err -> {
-                                                logger.error("Failed to add audit log entry for updateProfile", err);
-                                            }
-                                    );
+                            auditService.logSuccess(ctx, AuditAction.UPDATE_PROFILE).subscribe();
                         },
                         err -> {
                             int statusCode = err.getMessage().contains("not found") ? 404 : 500;
+                            auditService.logFailure(ctx, AuditAction.UPDATE_PROFILE, err.getMessage()).subscribe();
                             ctx.response()
                                     .setStatusCode(statusCode)
                                     .putHeader("Content-Type", "application/json")

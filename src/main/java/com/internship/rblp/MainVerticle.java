@@ -5,10 +5,7 @@ import com.internship.rblp.handlers.admin.*;
 import com.internship.rblp.handlers.admin.bulkupload.GetBulkErrorsHandler;
 import com.internship.rblp.handlers.admin.bulkupload.GetBulkStatusHandler;
 import com.internship.rblp.handlers.admin.bulkupload.StartBulkUploadHandler;
-import com.internship.rblp.handlers.kyc.ApproveKycHandler;
-import com.internship.rblp.handlers.kyc.GetAllKycHandler;
-import com.internship.rblp.handlers.kyc.GetKycDetailHandler;
-import com.internship.rblp.handlers.kyc.RejectKycHandler;
+import com.internship.rblp.handlers.kyc.*;
 import com.internship.rblp.handlers.student.GetStudentKycStatusHandler;
 import com.internship.rblp.handlers.student.SubmitStudentKycHandler;
 import com.internship.rblp.handlers.teacher.SubmitTeacherKycHandler;
@@ -78,6 +75,7 @@ public class MainVerticle extends AbstractVerticle {
         KycService kycService = new KycService(kycRepository, userRepository,vertx, aiService, aiRepo);
         GetAllKycHandler.init(kycService);
         GetKycDetailHandler.init(kycService);
+        GetKycWithAiDetailsHandler.init(kycService);
         ApproveKycHandler.init(kycService);
         RejectKycHandler.init(kycService);
 

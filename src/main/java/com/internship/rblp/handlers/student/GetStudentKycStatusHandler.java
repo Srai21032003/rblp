@@ -1,20 +1,16 @@
 package com.internship.rblp.handlers.student;
 
+import com.internship.rblp.models.enums.AuditAction;
 import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.KycService;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.rxjava3.ext.web.RoutingContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.time.Instant;
 
 public enum GetStudentKycStatusHandler implements Handler<RoutingContext> {
     INSTANCE;
 
     private static AuditLogsService auditService;
-    private static final Logger logger = LoggerFactory.getLogger(GetStudentKycStatusHandler.class);
     private static KycService kycService;
     public static void init(KycService service, AuditLogsService audService){
 
@@ -43,21 +39,14 @@ public enum GetStudentKycStatusHandler implements Handler<RoutingContext> {
                                     .setStatusCode(201)
                                     .putHeader("Content-Type", "application/json")
                                     .end(statusJson.encode());
-                            String getKycStatusSuccess = "FETCHED KYC STATUS AT "+ auditService.getCurrentTimestamp();
-                            auditService.addAuditLogEntry(ctx, getKycStatusSuccess)
-                                    .subscribe(
-                                            ()-> logger.info("Audit log entry added successfully"),
-                                            err -> {
-                                                logger.error("Failed to add audit log entry for getKycStatus", err);
-                                            }
-                                    );
+                            auditService.logSuccess(ctx, AuditAction.FETCH_KYC_STATUS).subscribe();
                         },
                         err -> {
                             int statusCode = 500;
                             if(err.getMessage().contains("not found")){
                                 statusCode = 404;
                             }
-
+                            auditService.logFailure(ctx, AuditAction.FETCH_KYC_STATUS, err.getMessage()).subscribe();
                             ctx.response()
                                     .setStatusCode(statusCode)
                                     .putHeader("Content-Type", "application/json")

@@ -1,5 +1,6 @@
 package com.internship.rblp.handlers.auth;
 
+import com.internship.rblp.models.enums.AuditAction;
 import com.internship.rblp.repository.AuditLogsRepository;
 import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.AuthService;
@@ -57,14 +58,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
                 .putHeader("Content-Type", "application/json")
                 .end(new JsonObject().put("message", "Logged out successfully").encode());
 
-        String logoutSuccess = "LOGGED OUT AT "+ auditService.getCurrentTimestamp();
-        auditService.addAuditLogEntry(ctx, logoutSuccess)
-                .subscribe(
-                        ()-> logger.info("Audit log entry added successfully"),
-                        err -> {
-                            logger.error("Failed to add audit log entry in logout", err);
-                        }
-                );
+        auditService.logSuccess(ctx, AuditAction.LOGOUT).subscribe();
     }
 
     private void handleLogin(RoutingContext ctx) {
@@ -104,14 +98,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
                             cookie.setSecure(false);  // to be set to "true" in production
                             cookie.setMaxAge(864000);
                             ctx.response().addCookie(cookie);
-                            String loginSuccess = "LOGGED IN AT "+ auditService.getCurrentTimestamp();
-                            auditService.addAuditLogEntry(ctx, loginSuccess)
-                                            .subscribe(
-                                                    ()-> logger.info("Audit log entry added successfully"),
-                                                    err -> {
-                                                        logger.error("Failed to add audit log entry for login", err);
-                                                    }
-                                            );
+                            auditService.logSuccess(ctx, AuditAction.LOGIN).subscribe();
                             ctx.json(new JsonObject()
                                     .put("message", "Login successful")
                                     .put("token", token));
@@ -119,6 +106,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
                         err -> {
                             int code = err.getMessage().contains("found") || err.getMessage().contains("credentials") ? 401 : 500;
                             ctx.response().setStatusCode(code).end(new JsonObject().put("error", err.getMessage()).encode());
+                            auditService.logFailure(ctx, AuditAction.LOGIN, err.getMessage()).subscribe();
                         }
                 );
     }
@@ -137,14 +125,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
                             logger.info("Signup success");
                             String userId = JwtUtil.validateToken(token).getSubject();
                             ctx.put("userId", userId);
-                            String signupSuccess = "SIGNED UP AT "+ auditService.getCurrentTimestamp();
-                            auditService.addAuditLogEntry(ctx, signupSuccess)
-                                    .subscribe(
-                                            ()-> logger.info("Audit log entry added successfully"),
-                                            err -> {
-                                                logger.error("Failed to add audit log entry for signup", err);
-                                            }
-                                    );
+                            auditService.logSuccess(ctx, AuditAction.SIGNUP).subscribe();
                             ctx.response()
                                     .setStatusCode(201)
                                     .end(new JsonObject()
@@ -158,6 +139,7 @@ public enum AuthHandler implements Handler<RoutingContext> {
                                     .end(new JsonObject()
                                             .put("error", err.getMessage())
                                             .encode());
+                            auditService.logFailure(ctx, AuditAction.SIGNUP, err.getMessage()).subscribe();
                         }
                 );
     }

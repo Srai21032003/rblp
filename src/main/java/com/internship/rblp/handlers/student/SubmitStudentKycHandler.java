@@ -1,5 +1,6 @@
 package com.internship.rblp.handlers.student;
 
+import com.internship.rblp.models.enums.AuditAction;
 import com.internship.rblp.service.AuditLogsService;
 import com.internship.rblp.service.FileStorageService;
 import com.internship.rblp.service.KycService;
@@ -64,13 +65,7 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
                             try{
                                 JsonObject serviceData = buildServicePayload(ctx,processedFiles);
                                 String saveFileSuccess = "FILE SAVED TO LOCAL AT "+ auditService.getCurrentTimestamp();
-                                auditService.addAuditLogEntry(ctx, saveFileSuccess)
-                                        .subscribe(
-                                                ()-> logger.info("Audit log entry added successfully"),
-                                                err -> {
-                                                    logger.error("Failed to add audit log entry for saveFile", err);
-                                                }
-                                        );
+                                auditService.logSuccess(ctx, AuditAction.SAVE_FILE).subscribe();
 
                                 kycService.submitKyc(userId, serviceData, ctx)
                                         .subscribe(
@@ -80,14 +75,7 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
                                                             .end(new JsonObject()
                                                                     .put("message", "Student KYC submitted successfully")
                                                                     .put("kycId", kycId).encode());
-                                                    String submitKycSuccess = "SUBMITTED KYC AT "+ auditService.getCurrentTimestamp();
-                                                    auditService.addAuditLogEntry(ctx, submitKycSuccess)
-                                                            .subscribe(
-                                                                    ()-> logger.info("Audit log entry added successfully"),
-                                                                    err -> {
-                                                                        logger.error("Failed to add audit log entry for submitKyc", err);
-                                                                    }
-                                                            );
+                                                    auditService.logSuccess(ctx, AuditAction.SUBMIT_KYC).subscribe();
                                                 },
                                                 err -> {
                                                     processedFiles.forEach(f -> ctx.vertx().fileSystem().delete(f.getString("savedPath")));
@@ -96,12 +84,14 @@ public enum SubmitStudentKycHandler implements Handler<RoutingContext> {
                                                     ctx.response().setStatusCode(statusCode)
                                                             .putHeader("Content-Type", "application/json")
                                                             .end(new JsonObject().put("error", err.getMessage()).encode());
+                                                    auditService.logFailure(ctx, AuditAction.SUBMIT_KYC, err.getMessage()).subscribe();
                                                 });
                             } catch(Exception e){
                                 ctx.fail(400, e);
                             }
                         }, err->{
                             ctx.fail(500, new RuntimeException("Failed to store docs"+ err.getMessage()));
+                            auditService.logFailure(ctx, AuditAction.SAVE_FILE, err.getMessage()).subscribe();
                         }
                 );
     }

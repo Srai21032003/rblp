@@ -34,12 +34,20 @@ public class AuditLogs extends Model {
     public static class AuditLogEntry {
         private String timestamp;
         private String action;
+        private String status;
+        private String ipAddress;
+        private String userAgent;
+        private String details;
 
         public AuditLogEntry(){}
 
-        public AuditLogEntry(Instant now, String actionString) {
-            this.timestamp = now.toString();
-            this.action = actionString;
+        public AuditLogEntry(String timestamp, String action, String userAgent, String ipAddress, String details, String status) {
+            this.action = action;
+            this.details = details;
+            this.timestamp = timestamp;
+            this.ipAddress = ipAddress;
+            this.userAgent = userAgent;
+            this.status = status;
         }
     }
 }
